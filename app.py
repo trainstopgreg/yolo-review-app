@@ -50,13 +50,13 @@ with open(label_path) as f:
 if not lines:
     st.session_state.image_index += 1
     st.session_state.annotation_index = 0
-    st.experimental_rerun()
+    st.rerun()
 
 # Move to next image if annotations exhausted
 if st.session_state.annotation_index >= len(lines):
     st.session_state.image_index += 1
     st.session_state.annotation_index = 0
-    st.experimental_rerun()
+    st.rerun()
 
 # Get annotation
 ann = lines[st.session_state.annotation_index]
@@ -87,8 +87,8 @@ col1, col2 = st.columns(2)
 yes_clicked = col1.button("✅ Yes - Correct")
 no_clicked = col2.button("❌ No - Incorrect")
 
-# Show cropped annotation image
-st.image(cropped, caption=f"{class_names[int(class_id)]}", use_container_width=True)
+# Show resized cropped annotation image (fixed size)
+st.image(resized_cropped, caption=f"{class_names[int(class_id)]}", use_container_width=False)
 
 # Track annotation count
 st.markdown(f"Image {st.session_state.image_index + 1} of {len(image_files)}")
