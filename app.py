@@ -31,7 +31,6 @@ if "stopped" not in st.session_state:
     st.session_state.stopped = False
 
 def save_rejection(annotation):
-    # Append to a json file for rejected annotations
     rejected_file = "rejected_annotations.json"
     if os.path.exists(rejected_file):
         with open(rejected_file, "r") as f:
@@ -119,10 +118,12 @@ wpercent = (max_width / float(pil_img.size[0]))
 hsize = int((float(pil_img.size[1]) * float(wpercent)))
 resized_cropped = pil_img.resize((max_width, hsize))
 
-# Buttons side by side at top
+# Yes/No buttons side by side at top, smaller labels, full width columns
 col1, col2 = st.columns([1, 1], gap="small")
-yes_clicked = col1.button("✅ Yes - Correct")
-no_clicked = col2.button("❌ No - Incorrect")
+with col1:
+    yes_clicked = st.button("✅ Yes", use_container_width=True, key="yes")
+with col2:
+    no_clicked = st.button("❌ No", use_container_width=True, key="no")
 
 # Class name below buttons
 st.markdown(f"## Class: `{class_names[ann['class_id']]}`")
