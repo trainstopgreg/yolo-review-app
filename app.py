@@ -1,8 +1,8 @@
 import os
 import streamlit as st
 from PIL import Image
-import cv2
 import glob
+import json
 
 st.set_page_config(page_title="YOLO Annotation Reviewer", layout="centered")
 
@@ -13,64 +13,54 @@ with open("classes.txt") as f:
 # Dataset split selection
 split = st.selectbox("Select dataset split", ["train", "valid", "test"])
 
-# Paths based on selected split
+# Load image and label files
 image_files = sorted(glob.glob(f"dataset/{split}/images/*.jpg"))
 label_files = sorted(glob.glob(f"dataset/{split}/labels/*.txt"))
 
-# Session state
+# Session state init
 if "image_index" not in st.session_state:
     st.session_state.image_index = 0
 if "annotation_index" not in st.session_state:
     st.session_state.annotation_index = 0
-if "results" not in st.session_state:
-    st.session_state.results = []
+if "rejected" not in st.session_state:
+    st.session_state.rejected = []
 
+# Check if index is in bounds
+if st.session_state.image_index >= len(image_files):
+    st.write("No more images.")
+    st.stop()
 
-def crop_annotation(img, box, img_width, img_height):
-    class_id, x, y, w, h = map(float, box)
-    x1 = int((x - w / 2) * img_width)
-    y1 = int((y - h / 2) * img_height)
-    x2 = int((x + w / 2) * img_width)
-    y2 = int((y + h / 2) * img_height)
-    cropped = img[y1:y2, x1:x2]
-    return cropped, int(class_id)
+# Get current image and label file
+img_path = image_files[st.session_state.image_index]
+label_path = label_files[st.session_state.image_index]
 
-if st.session_state.image_index < len(image_files):
-    img_path = image_files[st.session_state.image_index]
-    label_path = label_files[st.session_state.image_index]
+# Load image
+image = Image.open(img_path)
+image_width, image_height = image.size
 
-    img = cv2.imread(img_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    height, width, _ = img.shape
+# Load annotations
+with open(label_path) as f:
+    lines = f.read().strip().splitlines()
 
-    with open(label_path) as f:
-        lines = f.read().splitlines()
+if not lines:
+    st.write("No annotations in this image.")
+    st.session_state.image_index += 1
+    st.session_state.annotation_index = 0
+    st.experimental_rerun()
 
-    if lines:
-        box_line = lines[st.session_state.annotation_index]
-        cropped, class_id = crop_annotation(img, box_line.split(), width, height)
-        cropped_pil = Image.fromarray(cropped)
-        cropped_pil.thumbnail((400, 400))  # Resize for mobile
+# Get current annotation
+if st.session_state.annotation_index >= len(lines):
+    st.session_state.image_index += 1
+    st.session_state.annotation_index = 0
+    st.experimental_rerun()
 
-        st.image(cropped_pil, caption=f"{os.path.basename(img_path)}: Annotation {st.session_state.annotation_index + 1}/{len(lines)}")
-        st.markdown(f"### Class: **{class_names[class_id]}**")
+ann = lines[st.session_state.annotation_index]
+class_id, x_center, y_center, w, h = map(float, ann.strip().split())
 
-        feedback = st.radio("Is this annotation correct?", ["Yes", "No"], horizontal=True)
+# Convert YOLO format to pixel bbox
+x = int((x_center - w / 2) * image_width)
+y = int((y_center - h / 2) * image_height)
+w = int(w * image_width)
+h = int(h * image_height)
 
-        if st.button("Next ▶️"):
-            # Save result
-            st.session_state.results.append({
-                "image": os.path.basename(img_path),
-                "annotation_index": st.session_state.annotation_index,
-                "class": class_names[class_id],
-                "response": feedback
-            })
-
-            # Move to next annotation
-            st.session_state.annotation_index += 1
-            if st.session_state.annotation_index >= len(lines):
-                st.session_state.annotation_index = 0
-                st.session_state.image_index += 1
-else:
-    st.write("✅ Review complete!")
-    st.download_button("Download Results", data=str(st.session_state.results), file_name="annotation_review.txt")
+cropped = im
