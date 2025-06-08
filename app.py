@@ -12,7 +12,7 @@ st.markdown("""
     /* Make all buttons use same base look */
     button[kind="secondary"] {
         border: 2px solid #ccc;
-        color: black;
+        color: white;
     }
 
     /* YES button is the first button inside the first column, so we target it this way */
