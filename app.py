@@ -92,7 +92,7 @@ st.markdown("""
 # --- Custom buttons ---
 with st.form("annotation_form"):
     st.markdown(f"<div class='button-row'>\n    <button type='submit' name='response' value='yes' class='custom-button custom-yes'>✅ Yes</button>\n    <button type='submit' name='response' value='no' class='custom-button custom-no'>❌ No</button>\n    </div>", unsafe_allow_html=True)
-    st.markdown(f"### Class: `{class_name}`")
+    st.markdown(f"### `{class_name}`")
     st.image(cropped, caption=os.path.basename(image_path), use_container_width=True)
     response = st.form_submit_button()
 
