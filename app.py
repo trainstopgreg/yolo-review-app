@@ -9,19 +9,19 @@ st.set_page_config(page_title="YOLO Annotation Reviewer", layout="centered")
 
 st.markdown("""
     <style>
-    /* Make all buttons use same base look */
-    button[kind="secondary"] {
-        border: 2px solid #ccc;
-        color: white;
+    /* General button styles to avoid default red Streamlit hover */
+    button {
+        border: 2px solid #ccc !important;
+        color: white !important;
     }
 
-    /* YES button is the first button inside the first column, so we target it this way */
-    div[data-testid="column"] > div:nth-child(1) button {
-        border: 2px solid #28a745;
-        color: #28a745;
+    /* YES button (left button in a horizontal st.columns layout) */
+    div[data-testid="column"] button:nth-of-type(1) {
+        border-color: #28a745 !important;
+        color: #28a745 !important;
     }
 
-    div[data-testid="column"] > div:nth-child(1) button:hover {
+    div[data-testid="column"] button:nth-of-type(1):hover {
         background-color: #28a745 !important;
         color: white !important;
         border-color: #28a745 !important;
