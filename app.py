@@ -24,6 +24,27 @@ if "annotation_index" not in st.session_state:
     st.session_state.annotation_index = 0
 if "rejected" not in st.session_state:
     st.session_state.rejected = []
+if "stopped" not in st.session_state:
+    st.session_state.stopped = False
+
+# Stop session button
+if st.button("⏹ Stop Session and Review Rejected Annotations"):
+    st.session_state.stopped = True
+
+# If stopped, show rejected annotations and download
+if st.session_state.stopped:
+    st.warning("Session stopped. You can review and download rejected annotations below.")
+    if st.session_state.rejected:
+        st.json(st.session_state.rejected)
+        st.download_button(
+            "📥 Download rejected annotations",
+            data=json.dumps(st.session_state.rejected, indent=2),
+            file_name="rejected_annotations.json",
+            mime="application/json"
+        )
+    else:
+        st.info("No rejected annotations recorded.")
+    st.stop()
 
 # Advance indices to valid annotation before UI render
 while True:
