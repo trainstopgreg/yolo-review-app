@@ -71,6 +71,15 @@ h = int(h * img_h)
 # Crop
 cropped = image.crop((x, y, x + w, y + h))
 
+# Resize cropped image to max width 300px for mobile
+max_width = 300
+w_cropped, h_cropped = cropped.size
+if w_cropped > max_width:
+    new_height = int(h_cropped * max_width / w_cropped)
+    resized_cropped = cropped.resize((max_width, new_height))
+else:
+    resized_cropped = cropped
+
 # Display class name and buttons at the top
 st.markdown(f"## Class: `{class_names[int(class_id)]}`")
 col1, col2 = st.columns(2)
