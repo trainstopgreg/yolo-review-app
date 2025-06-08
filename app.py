@@ -96,4 +96,4 @@ if yes_clicked or no_clicked:
             "split": split
         })
     st.session_state.annotation_index += 1
-    st.experimental_rerun()
+    st.rerun()
