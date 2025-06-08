@@ -79,7 +79,7 @@ yes_clicked = col1.button("✅ Yes - Correct")
 no_clicked = col2.button("❌ No - Incorrect")
 
 # Show cropped annotation image
-st.image(cropped, caption=f"{class_names[int(class_id)]}", use_column_width=True)
+st.image(cropped, caption=f"{class_names[int(class_id)]}", use_container_width=True)
 
 # Track annotation count
 st.markdown(f"Image {st.session_state.image_index + 1} of {len(image_files)}")
