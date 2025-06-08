@@ -7,6 +7,28 @@ import glob
 
 st.set_page_config(page_title="YOLO Annotation Reviewer", layout="centered")
 
+st.markdown("""
+    <style>
+    /* Make all buttons use same base look */
+    button[kind="secondary"] {
+        border: 2px solid #ccc;
+        color: black;
+    }
+
+    /* YES button is the first button inside the first column, so we target it this way */
+    div[data-testid="column"] > div:nth-child(1) button {
+        border: 2px solid #28a745;
+        color: #28a745;
+    }
+
+    div[data-testid="column"] > div:nth-child(1) button:hover {
+        background-color: #28a745 !important;
+        color: white !important;
+        border-color: #28a745 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Load class names
 with open("classes.txt") as f:
     class_names = f.read().splitlines()
