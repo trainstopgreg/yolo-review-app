@@ -10,7 +10,7 @@ with open("classes.txt") as f:
     class_names = f.read().splitlines()
 
 # --- Select dataset split ---
-split = st.selectbox(["train", "valid", "test"])
+split = st.selectbox("",["train", "valid", "test"])
 
 # --- Load image and label paths ---
 image_files = sorted(glob.glob(f"dataset/{split}/images/*.jpg"))
