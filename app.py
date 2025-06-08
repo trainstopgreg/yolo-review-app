@@ -45,17 +45,10 @@ with col3:
     if st.button("No"):
         mark_no()
 
-# Optional: show count of rejected so far
+# Show count of rejected annotations so far
 st.write(f"Rejected annotations count: {len(st.session_state.rejected)}")
 
-# Optional: Save rejected annotations to JSON file on demand
-if st.button("Save rejected to file"):
-    with open("rejected_annotations.json", "w") as f:
-        json.dump(st.session_state.rejected, f)
-    st.success("Rejected annotations saved!")
-
-# Or, allow user to download JSON right from the app
-import io
+# Provide download button for rejected annotations JSON
 if st.session_state.rejected:
     rejected_json = json.dumps(st.session_state.rejected, indent=2)
     st.download_button(
