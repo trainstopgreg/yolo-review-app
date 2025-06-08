@@ -31,7 +31,12 @@ def mark_no():
 current = annotations[st.session_state.idx]
 st.write(f"Annotation {st.session_state.idx + 1} / {len(annotations)}")
 st.write(f"Class: {current['class']}")
-st.image(current['image_path'])  # Or however you load the image
+
+
+#st.image(current['image_path'])  # Or however you load the image
+st.write(f"Would show image: {current['image_path']}")
+st.image("https://via.placeholder.com/150")  # Placeholder image URL
+
 
 # Buttons for yes/no
 col1, col2, col3 = st.columns([1,1,1])
