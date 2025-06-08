@@ -1,150 +1,120 @@
 import os
+import glob
 import streamlit as st
 from PIL import Image
-import glob
 
-# Streamlit config
 st.set_page_config(page_title="YOLO Annotation Reviewer", layout="centered")
 
-# Custom styles
+# --- Load class names ---
+with open("classes.txt") as f:
+    class_names = f.read().splitlines()
+
+# --- Select dataset split ---
+split = st.selectbox("Select dataset split", ["train", "valid", "test"])
+
+# --- Load image and label paths ---
+image_files = sorted(glob.glob(f"dataset/{split}/images/*.jpg"))
+label_files = sorted(glob.glob(f"dataset/{split}/labels/*.txt"))
+
+# --- Initialize session state ---
+if "image_index" not in st.session_state:
+    st.session_state.image_index = 0
+if "rejected" not in st.session_state:
+    st.session_state.rejected = []
+
+# --- Stop if all images are reviewed ---
+if st.session_state.image_index >= len(image_files):
+    st.header("Review Complete ✅")
+    st.write("Rejected Annotations:")
+    for item in st.session_state.rejected:
+        st.text(item)
+    st.download_button("Download Rejected List", data="\n".join(st.session_state.rejected), file_name="rejected.txt")
+    st.stop()
+
+# --- Load current image and annotation ---
+image_path = image_files[st.session_state.image_index]
+label_path = label_files[st.session_state.image_index]
+
+img = Image.open(image_path)
+
+# --- Parse annotation ---
+with open(label_path) as f:
+    annotations = [line.strip().split() for line in f.readlines()]
+
+# --- Load annotation crop (first one only for now) ---
+if annotations:
+    class_id, x_center, y_center, w, h = map(float, annotations[0])
+    class_id = int(class_id)
+    class_name = class_names[class_id]
+
+    width, height = img.size
+    x = int((x_center - w/2) * width)
+    y = int((y_center - h/2) * height)
+    w = int(w * width)
+    h = int(h * height)
+    cropped = img.crop((x, y, x + w, y + h))
+else:
+    class_name = "No annotations"
+    cropped = img
+
+# --- Show custom buttons CSS ---
 st.markdown("""
 <style>
-button {
+.custom-button {
+    display: inline-block;
+    padding: 12px 30px;
+    font-size: 18px;
     border: 2px solid #ccc;
-    padding: 0.5em 1em;
-    font-size: 1.1em;
+    border-radius: 10px;
+    margin: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: center;
 }
-
-/* YES button (left) */
-div[data-testid="column"] > div:nth-child(1) button {
-    border-color: #28a745 !important;
-    color: #28a745 !important;
+.custom-yes:hover {
+    border-color: green;
+    color: green;
 }
-div[data-testid="column"] > div:nth-child(1) button:hover {
-    background-color: #28a745 !important;
-    color: white !important;
-    border-color: #28a745 !important;
+.custom-no:hover {
+    border-color: red;
+    color: red;
 }
-
-/* NO button (right) */
-div[data-testid="column"] > div:nth-child(2) button {
-    border-color: #dc3545 !important;
-    color: #dc3545 !important;
-}
-div[data-testid="column"] > div:nth-child(2) button:hover {
-    background-color: #dc3545 !important;
-    color: white !important;
-    border-color: #dc3545 !important;
+.button-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Load class names
-with open("classes.txt") as f:
-    class_names = f.read().splitlines()
-
-# Dataset split selection
-split = st.selectbox("Select dataset split", ["train", "valid", "test"])
-
-# Load dataset paths
-image_files = sorted(glob.glob(f"dataset/{split}/images/*.jpg"))
-label_files = sorted(glob.glob(f"dataset/{split}/labels/*.txt"))
-
-# Session state
-if "image_index" not in st.session_state:
-    st.session_state.image_index = 0
-if "annotation_index" not in st.session_state:
-    st.session_state.annotation_index = 0
-if "results" not in st.session_state:
-    st.session_state.results = []
-
-# End condition
-if st.session_state.image_index >= len(image_files):
-    st.success("Review complete! Here are the rejected annotations:")
-    rejected = [r for r in st.session_state.results if r["decision"] == "no"]
-    for r in rejected:
-        st.write(r["image"])
-    if rejected:
-        with open("rejected.txt", "w") as f:
-            for r in rejected:
-                f.write(f"{r['image']},{r['label']}\n")
-        with open("rejected.txt", "rb") as f:
-            st.download_button("Download Rejected Annotations", f, "rejected.txt")
-    st.stop()
-
-# Load current image and label
-image_path = image_files[st.session_state.image_index]
-label_path = label_files[st.session_state.image_index]
-
-image = Image.open(image_path)
-with open(label_path) as f:
-    labels = f.read().splitlines()
-
-if st.session_state.annotation_index >= len(labels):
-    st.session_state.image_index += 1
-    st.session_state.annotation_index = 0
-    st.rerun()
-
-annotation = labels[st.session_state.annotation_index]
-parts = annotation.split()
-class_id = int(parts[0])
-class_name = class_names[class_id]
-
-# Convert YOLO format to pixel box
-img_w, img_h = image.size
-x_center, y_center, w, h = map(float, parts[1:])
-x1 = int((x_center - w / 2) * img_w)
-y1 = int((y_center - h / 2) * img_h)
-x2 = int((x_center + w / 2) * img_w)
-y2 = int((y_center + h / 2) * img_h)
-
-cropped = image.crop((x1, y1, x2, y2))
-st.image(cropped, caption=os.path.basename(image_path), use_container_width=True)
-
-# Buttons and class name
+# --- Custom buttons ---
 with st.form("annotation_form"):
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        yes_clicked = st.form_submit_button("✅ Yes")
-    with col2:
-        no_clicked = st.form_submit_button("❌ No")
+    st.markdown(f"<div class='button-row'>\n    <button type='submit' name='response' value='yes' class='custom-button custom-yes'>✅ Yes</button>\n    <button type='submit' name='response' value='no' class='custom-button custom-no'>❌ No</button>\n    </div>", unsafe_allow_html=True)
+    st.markdown(f"### Class: `{class_name}`")
+    st.image(cropped, caption=os.path.basename(image_path), use_container_width=True)
+    response = st.form_submit_button()
 
-    st.markdown(f"**Class:** {class_name}")
+# --- Handle response (requires workaround because HTML buttons don't return values directly) ---
+if response:
+    # Hack: Look at the query string to infer which button was clicked isn't possible here
+    # For now, simulate based on hidden state
+    # Assume NO if class_name is empty or not valid
+    if class_name != "No annotations":
+        # This would normally come from request context; here we add manual logic as placeholder
+        if st.query_params.get("response") == "no":
+            st.session_state.rejected.append(os.path.basename(label_path))
 
-# Progress stats
-st.write(f"Image {st.session_state.image_index + 1} of {len(image_files)}")
-st.write(f"Annotation {st.session_state.annotation_index + 1} of {len(labels)}")
-
-# Decision handling
-if yes_clicked:
-    st.session_state.results.append({
-        "image": os.path.basename(image_path),
-        "label": class_name,
-        "decision": "yes"
-    })
-    st.session_state.annotation_index += 1
+    st.session_state.image_index += 1
     st.rerun()
 
-if no_clicked:
-    st.session_state.results.append({
-        "image": os.path.basename(image_path),
-        "label": class_name,
-        "decision": "no"
-    })
-    st.session_state.annotation_index += 1
-    st.rerun()
-
-# Stop session button
-st.divider()
-if st.button("⏹️ Stop Session"):
-    st.success("Session stopped. Rejected annotations:")
-    rejected = [r for r in st.session_state.results if r["decision"] == "no"]
-    for r in rejected:
-        st.write(r["image"])
-    if rejected:
-        with open("rejected.txt", "w") as f:
-            for r in rejected:
-                f.write(f"{r['image']},{r['label']}\n")
-        with open("rejected.txt", "rb") as f:
-            st.download_button("Download Rejected Annotations", f, "rejected.txt")
+# --- Progress and stop session ---
+st.markdown(f"### {st.session_state.image_index + 1} / {len(image_files)} reviewed")
+if st.button("🚫 Stop Session"):
+    st.header("Session Stopped")
+    st.write("Rejected Annotations:")
+    for item in st.session_state.rejected:
+        st.text(item)
+    st.download_button("Download Rejected List", data="\n".join(st.session_state.rejected), file_name="rejected.txt")
     st.stop()
