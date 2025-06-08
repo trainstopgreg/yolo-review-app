@@ -106,7 +106,7 @@ if st.session_state.annotation_index >= len(annotations):
     # Move to next image
     st.session_state.image_index += 1
     st.session_state.annotation_index = 0
-    st.experimental_rerun()
+    st.rerun()
 
 ann = annotations[st.session_state.annotation_index]
 cropped = crop_annotation(image, ann)
@@ -117,6 +117,12 @@ max_width = 300
 wpercent = (max_width / float(pil_img.size[0]))
 hsize = int((float(pil_img.size[1]) * float(wpercent)))
 resized_cropped = pil_img.resize((max_width, hsize))
+
+# Show progress info
+st.markdown(
+    f"### Image {st.session_state.image_index + 1} of {len(image_files)} | "
+    f"Annotation {st.session_state.annotation_index + 1} of {len(annotations)}"
+)
 
 # Yes/No buttons side by side at top, smaller labels, full width columns
 col1, col2 = st.columns([1, 1], gap="small")
@@ -151,4 +157,4 @@ if yes_clicked or no_clicked:
 st.markdown("---")
 if st.button("⏹ Stop Session and Review Rejected Annotations"):
     st.session_state.stopped = True
-    st.experimental_rerun()
+    st.rerun()
