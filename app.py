@@ -63,4 +63,40 @@ y = int((y_center - h / 2) * image_height)
 w = int(w * image_width)
 h = int(h * image_height)
 
-cropped = im
+cropped = image.crop((x, y, x + w, y + h))
+
+# Top row: Class name and buttons
+st.markdown(f"### Class: {class_names[int(class_id)]}")
+col1, col2 = st.columns([1, 1])
+with col1:
+    if st.button("✅ Yes - This is correct"):
+        st.session_state.annotation_index += 1
+        st.experimental_rerun()
+with col2:
+    if st.button("❌ No - This is incorrect"):
+        st.session_state.rejected.append({
+            "image": os.path.basename(img_path),
+            "class_id": int(class_id),
+            "class_name": class_names[int(class_id)],
+            "bbox": [x, y, w, h],
+            "split": split
+        })
+        st.session_state.annotation_index += 1
+        st.experimental_rerun()
+
+# Then show cropped image
+st.image(cropped, width=350)
+
+# Image and annotation count
+st.markdown(f"**Image {st.session_state.image_index + 1} of {len(image_files)}**")
+st.markdown(f"**Annotation {st.session_state.annotation_index + 1} of {len(lines)}**")
+
+# Download rejected annotations
+if st.session_state.rejected:
+    rejected_json = json.dumps(st.session_state.rejected, indent=2)
+    st.download_button(
+        label="📥 Download rejected annotations",
+        data=rejected_json,
+        file_name="rejected_annotations.json",
+        mime="application/json"
+    )
