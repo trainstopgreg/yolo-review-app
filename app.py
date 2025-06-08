@@ -6,6 +6,8 @@ import json
 
 st.set_page_config(page_title="YOLO Annotation Reviewer", layout="centered")
 
+REJECTED_FILE = "rejected_annotations.jsonl"
+
 # Load class names
 with open("classes.txt") as f:
     class_names = f.read().splitlines()
@@ -26,6 +28,20 @@ if "rejected" not in st.session_state:
     st.session_state.rejected = []
 if "stopped" not in st.session_state:
     st.session_state.stopped = False
+
+# Load previously saved rejections from file on app start
+if os.path.exists(REJECTED_FILE) and not st.session_state.rejected:
+    with open(REJECTED_FILE, "r") as f:
+        for line in f:
+            try:
+                ann = json.loads(line.strip())
+                st.session_state.rejected.append(ann)
+            except json.JSONDecodeError:
+                pass
+
+def save_rejection(annotation):
+    with open(REJECTED_FILE, "a") as f:
+        f.write(json.dumps(annotation) + "\n")
 
 # Stop session button
 if st.button("⏹ Stop Session and Review Rejected Annotations"):
@@ -117,12 +133,16 @@ st.markdown(f"Annotation {st.session_state.annotation_index + 1} of {len(lines)}
 # Handle user input and advance annotation index
 if yes_clicked or no_clicked:
     if no_clicked:
-        st.session_state.rejected.append({
+        annotation = {
             "image": os.path.basename(img_path),
             "class_id": int(class_id),
             "class_name": class_names[int(class_id)],
             "bbox": [x, y, w, h],
             "split": split
-        })
+        }
+        st.session_state.rejected.append(annotation)
+        save_rejection(annotation)
+        st.write(f"Rejected count: {len(st.session_state.rejected)}")
+
     st.session_state.annotation_index += 1
     st.rerun()
