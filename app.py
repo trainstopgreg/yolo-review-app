@@ -1,12 +1,11 @@
 import os
+import json
 import streamlit as st
 from PIL import Image
+import cv2
 import glob
-import json
 
 st.set_page_config(page_title="YOLO Annotation Reviewer", layout="centered")
-
-REJECTED_FILE = "rejected_annotations.jsonl"
 
 # Load class names
 with open("classes.txt") as f:
@@ -15,43 +14,69 @@ with open("classes.txt") as f:
 # Dataset split selection
 split = st.selectbox("Select dataset split", ["train", "valid", "test"])
 
-# Load images and labels
+# Paths based on selected split
 image_files = sorted(glob.glob(f"dataset/{split}/images/*.jpg"))
 label_files = sorted(glob.glob(f"dataset/{split}/labels/*.txt"))
 
-# Initialize session state
+# Session state initialization
 if "image_index" not in st.session_state:
     st.session_state.image_index = 0
 if "annotation_index" not in st.session_state:
     st.session_state.annotation_index = 0
+if "results" not in st.session_state:
+    st.session_state.results = []
 if "rejected" not in st.session_state:
     st.session_state.rejected = []
 if "stopped" not in st.session_state:
     st.session_state.stopped = False
 
-# Load previously saved rejections from file on app start
-if os.path.exists(REJECTED_FILE) and not st.session_state.rejected:
-    with open(REJECTED_FILE, "r") as f:
-        for line in f:
-            try:
-                ann = json.loads(line.strip())
-                st.session_state.rejected.append(ann)
-            except json.JSONDecodeError:
-                pass
-
 def save_rejection(annotation):
-    with open(REJECTED_FILE, "a") as f:
-        f.write(json.dumps(annotation) + "\n")
+    # Append to a json file for rejected annotations
+    rejected_file = "rejected_annotations.json"
+    if os.path.exists(rejected_file):
+        with open(rejected_file, "r") as f:
+            data = json.load(f)
+    else:
+        data = []
+    data.append(annotation)
+    with open(rejected_file, "w") as f:
+        json.dump(data, f, indent=2)
 
-# Stop session button
-if st.button("⏹ Stop Session and Review Rejected Annotations"):
-    st.session_state.stopped = True
+def read_annotations(label_path):
+    with open(label_path, "r") as f:
+        lines = f.read().strip().split("\n")
+    annotations = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) == 5:
+            class_id, x, y, w, h = parts
+            annotations.append({
+                "class_id": int(class_id),
+                "x": float(x),
+                "y": float(y),
+                "w": float(w),
+                "h": float(h),
+            })
+    return annotations
 
-# If stopped, show rejected annotations and download
+def crop_annotation(image, ann):
+    h, w, _ = image.shape
+    cx = int(ann["x"] * w)
+    cy = int(ann["y"] * h)
+    bw = int(ann["w"] * w)
+    bh = int(ann["h"] * h)
+
+    x1 = max(cx - bw // 2, 0)
+    y1 = max(cy - bh // 2, 0)
+    x2 = min(cx + bw // 2, w)
+    y2 = min(cy + bh // 2, h)
+
+    cropped = image[y1:y2, x1:x2]
+    return cropped
+
 if st.session_state.stopped:
     st.warning("Session stopped. You can review and download rejected annotations below.")
     if st.session_state.rejected:
-        # Extract unique image file names with rejected annotations
         rejected_images = sorted(set(item["image"] for item in st.session_state.rejected))
         st.markdown("### Rejected annotations from these images:")
         for img_name in rejected_images:
@@ -67,77 +92,51 @@ if st.session_state.stopped:
         st.info("No rejected annotations recorded.")
     st.stop()
 
-# Advance indices to valid annotation before UI render
-while True:
-    if st.session_state.image_index >= len(image_files):
-        st.success("✅ Review complete. No more images.")
-        if st.session_state.rejected:
-            st.download_button(
-                "📥 Download rejected annotations",
-                data=json.dumps(st.session_state.rejected, indent=2),
-                file_name="rejected_annotations.json",
-                mime="application/json"
-            )
-        st.stop()
+if st.session_state.image_index >= len(image_files):
+    st.success("🎉 You have reviewed all images!")
+    st.stop()
 
-    label_path = label_files[st.session_state.image_index]
-    with open(label_path) as f:
-        lines = f.read().strip().splitlines()
-
-    if st.session_state.annotation_index < len(lines):
-        break  # valid annotation found, proceed to UI
-    else:
-        # No annotations left in this image, advance to next
-        st.session_state.image_index += 1
-        st.session_state.annotation_index = 0
-
-# Load current image and annotation
 img_path = image_files[st.session_state.image_index]
-image = Image.open(img_path)
-img_w, img_h = image.size
+label_path = label_files[st.session_state.image_index]
 
-ann = lines[st.session_state.annotation_index]
-class_id, x_center, y_center, w, h = map(float, ann.split())
+image = cv2.imread(img_path)
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-# Convert YOLO bbox to pixel bbox
-x = int((x_center - w / 2) * img_w)
-y = int((y_center - h / 2) * img_h)
-w = int(w * img_w)
-h = int(h * img_h)
+annotations = read_annotations(label_path)
+if st.session_state.annotation_index >= len(annotations):
+    # Move to next image
+    st.session_state.image_index += 1
+    st.session_state.annotation_index = 0
+    st.experimental_rerun()
 
-# Crop the annotation region
-cropped = image.crop((x, y, x + w, y + h))
+ann = annotations[st.session_state.annotation_index]
+cropped = crop_annotation(image, ann)
 
-# Resize cropped image to max width 300px for mobile-friendly display
+# Resize cropped image for mobile-friendly display (max width 300px)
+pil_img = Image.fromarray(cropped)
 max_width = 300
-w_cropped, h_cropped = cropped.size
-if w_cropped > max_width:
-    new_height = int(h_cropped * max_width / w_cropped)
-    resized_cropped = cropped.resize((max_width, new_height))
-else:
-    resized_cropped = cropped
+wpercent = (max_width / float(pil_img.size[0]))
+hsize = int((float(pil_img.size[1]) * float(wpercent)))
+resized_cropped = pil_img.resize((max_width, hsize))
 
-# Display class and buttons at the top
-st.markdown(f"## Class: `{class_names[int(class_id)]}`")
-col1, col2 = st.columns(2)
+# Buttons side by side at top
+col1, col2 = st.columns([1, 1], gap="small")
 yes_clicked = col1.button("✅ Yes - Correct")
 no_clicked = col2.button("❌ No - Incorrect")
 
-# Show cropped image
-st.image(resized_cropped, caption=f"{class_names[int(class_id)]}", use_container_width=False)
+# Class name below buttons
+st.markdown(f"## Class: `{class_names[ann['class_id']]}`")
 
-# Show progress
-st.markdown(f"Image {st.session_state.image_index + 1} of {len(image_files)}")
-st.markdown(f"Annotation {st.session_state.annotation_index + 1} of {len(lines)}")
+# Show cropped image below class name
+st.image(resized_cropped, use_container_width=False)
 
-# Handle user input and advance annotation index
 if yes_clicked or no_clicked:
     if no_clicked:
         annotation = {
             "image": os.path.basename(img_path),
-            "class_id": int(class_id),
-            "class_name": class_names[int(class_id)],
-            "bbox": [x, y, w, h],
+            "class_id": ann["class_id"],
+            "class_name": class_names[ann["class_id"]],
+            "bbox": [ann["x"], ann["y"], ann["w"], ann["h"]],
             "split": split
         }
         st.session_state.rejected.append(annotation)
@@ -146,3 +145,9 @@ if yes_clicked or no_clicked:
 
     st.session_state.annotation_index += 1
     st.rerun()
+
+# Stop session button at bottom
+st.markdown("---")
+if st.button("⏹ Stop Session and Review Rejected Annotations"):
+    st.session_state.stopped = True
+    st.experimental_rerun()
