@@ -35,7 +35,12 @@ if st.button("⏹ Stop Session and Review Rejected Annotations"):
 if st.session_state.stopped:
     st.warning("Session stopped. You can review and download rejected annotations below.")
     if st.session_state.rejected:
-        st.json(st.session_state.rejected)
+        # Extract unique image file names with rejected annotations
+        rejected_images = sorted(set(item["image"] for item in st.session_state.rejected))
+        st.markdown("### Rejected annotations from these images:")
+        for img_name in rejected_images:
+            st.write(f"- {img_name}")
+
         st.download_button(
             "📥 Download rejected annotations",
             data=json.dumps(st.session_state.rejected, indent=2),
