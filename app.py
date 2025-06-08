@@ -65,10 +65,10 @@ h = int(h * image_height)
 
 cropped = image.crop((x, y, x + w, y + h))
 
-# Top row: Class name and buttons
+# Top section: class name and buttons
 st.markdown(f"### Class: {class_names[int(class_id)]}")
-col1, col2 = st.columns([1, 1])
 
+col1, col2 = st.columns([1, 1])
 yes_clicked = col1.button("✅ Yes - This is correct")
 no_clicked = col2.button("❌ No - This is incorrect")
 
@@ -87,27 +87,14 @@ if no_clicked:
     st.session_state.annotation_index += 1
     st.experimental_rerun()
 
-
-with col2:
-    if st.button("❌ No - This is incorrect"):
-        st.session_state.rejected.append({
-            "image": os.path.basename(img_path),
-            "class_id": int(class_id),
-            "class_name": class_names[int(class_id)],
-            "bbox": [x, y, w, h],
-            "split": split
-        })
-        st.session_state.annotation_index += 1
-        st.experimental_rerun()
-
-# Then show cropped image
+# Show cropped image
 st.image(cropped, width=350)
 
-# Image and annotation count
+# Info on progress
 st.markdown(f"**Image {st.session_state.image_index + 1} of {len(image_files)}**")
 st.markdown(f"**Annotation {st.session_state.annotation_index + 1} of {len(lines)}**")
 
-# Download rejected annotations
+# Rejected annotations download
 if st.session_state.rejected:
     rejected_json = json.dumps(st.session_state.rejected, indent=2)
     st.download_button(
