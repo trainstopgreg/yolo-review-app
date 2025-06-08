@@ -1,120 +1,130 @@
 import os
-import glob
 import streamlit as st
 from PIL import Image
+import glob
+import zipfile
 
 st.set_page_config(page_title="YOLO Annotation Reviewer", layout="centered")
 
-# --- Load class names ---
+# Custom CSS for hover effects and layout
+st.markdown("""
+    <style>
+    .button-row {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .yes-button button:hover {
+        border-color: green !important;
+        color: green !important;
+    }
+    .no-button button:hover {
+        border-color: red !important;
+        color: red !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Load class names
 with open("classes.txt") as f:
     class_names = f.read().splitlines()
 
-# --- Select dataset split ---
-split = st.selectbox("Select dataset split", ["train", "valid", "test"])
+# Horizontal layout for dataset split selector
+col1, col2 = st.columns([1, 3])
+with col1:
+    st.write("### Select dataset split")
+with col2:
+    split = st.selectbox("", ["train", "valid", "test"])
 
-# --- Load image and label paths ---
+# Paths based on selected split
 image_files = sorted(glob.glob(f"dataset/{split}/images/*.jpg"))
 label_files = sorted(glob.glob(f"dataset/{split}/labels/*.txt"))
 
-# --- Initialize session state ---
+# Session state
 if "image_index" not in st.session_state:
     st.session_state.image_index = 0
-if "rejected" not in st.session_state:
-    st.session_state.rejected = []
+if "annotation_index" not in st.session_state:
+    st.session_state.annotation_index = 0
+if "results" not in st.session_state:
+    st.session_state.results = []
 
-# --- Stop if all images are reviewed ---
+# Function to get current annotation
+def get_current_annotation():
+    img_path = image_files[st.session_state.image_index]
+    label_path = label_files[st.session_state.image_index]
+    with open(label_path) as f:
+        annotations = f.read().strip().splitlines()
+
+    if not annotations:
+        return None, None, None
+
+    ann = annotations[st.session_state.annotation_index]
+    class_id, x_center, y_center, width, height = map(float, ann.split())
+    class_name = class_names[int(class_id)]
+
+    image = Image.open(img_path)
+    img_width, img_height = image.size
+    left = int((x_center - width / 2) * img_width)
+    top = int((y_center - height / 2) * img_height)
+    right = int((x_center + width / 2) * img_width)
+    bottom = int((y_center + height / 2) * img_height)
+    cropped = image.crop((left, top, right, bottom))
+    return cropped, class_name, img_path
+
+# Stop session
+if st.button("Stop Session"):
+    st.session_state.stopped = True
+    if st.session_state.results:
+        rejected = [r for r in st.session_state.results if r["accepted"] is False]
+        if rejected:
+            with zipfile.ZipFile("rejected_annotations.zip", "w") as zipf:
+                for r in rejected:
+                    zipf.write(r["image"])
+            st.markdown("### Rejected Annotations")
+            for r in rejected:
+                st.text(os.path.basename(r["image"]))
+            with open("rejected_annotations.zip", "rb") as f:
+                st.download_button("Download Rejected Annotations", f, "rejected_annotations.zip")
+    st.stop()
+
+# End of images
 if st.session_state.image_index >= len(image_files):
-    st.header("Review Complete ✅")
-    st.write("Rejected Annotations:")
-    for item in st.session_state.rejected:
-        st.text(item)
-    st.download_button("Download Rejected List", data="\n".join(st.session_state.rejected), file_name="rejected.txt")
+    st.write("## All annotations reviewed!")
     st.stop()
 
-# --- Load current image and annotation ---
-image_path = image_files[st.session_state.image_index]
-label_path = label_files[st.session_state.image_index]
+# Display current cropped annotation
+cropped, class_name, img_path = get_current_annotation()
+if cropped:
+    st.image(cropped, caption=os.path.basename(img_path), use_container_width=True)
 
-img = Image.open(image_path)
+    # Buttons and class display
+    st.markdown('<div class="button-row">', unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Yes", key="yes"):
+            st.session_state.results.append({"image": img_path, "class": class_name, "accepted": True})
+            st.session_state.annotation_index += 1
+            st.rerun()
+    with col2:
+        if st.button("No", key="no"):
+            st.session_state.results.append({"image": img_path, "class": class_name, "accepted": False})
+            st.session_state.annotation_index += 1
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- Parse annotation ---
-with open(label_path) as f:
-    annotations = [line.strip().split() for line in f.readlines()]
-
-# --- Load annotation crop (first one only for now) ---
-if annotations:
-    class_id, x_center, y_center, w, h = map(float, annotations[0])
-    class_id = int(class_id)
-    class_name = class_names[class_id]
-
-    width, height = img.size
-    x = int((x_center - w/2) * width)
-    y = int((y_center - h/2) * height)
-    w = int(w * width)
-    h = int(h * height)
-    cropped = img.crop((x, y, x + w, y + h))
-else:
-    class_name = "No annotations"
-    cropped = img
-
-# --- Show custom buttons CSS ---
-st.markdown("""
-<style>
-.custom-button {
-    display: inline-block;
-    padding: 12px 30px;
-    font-size: 18px;
-    border: 2px solid #ccc;
-    border-radius: 10px;
-    margin: 5px;
-    cursor: pointer;
-    transition: 0.3s;
-    text-align: center;
-}
-.custom-yes:hover {
-    border-color: green;
-    color: green;
-}
-.custom-no:hover {
-    border-color: red;
-    color: red;
-}
-.button-row {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# --- Custom buttons ---
-with st.form("annotation_form"):
-    st.markdown(f"<div class='button-row'>\n    <button type='submit' name='response' value='yes' class='custom-button custom-yes'>✅ Yes</button>\n    <button type='submit' name='response' value='no' class='custom-button custom-no'>❌ No</button>\n    </div>", unsafe_allow_html=True)
     st.markdown(f"### Class: `{class_name}`")
-    st.image(cropped, caption=os.path.basename(image_path), use_container_width=True)
-    response = st.form_submit_button()
 
-# --- Handle response (requires workaround because HTML buttons don't return values directly) ---
-if response:
-    # Hack: Look at the query string to infer which button was clicked isn't possible here
-    # For now, simulate based on hidden state
-    # Assume NO if class_name is empty or not valid
-    if class_name != "No annotations":
-        # This would normally come from request context; here we add manual logic as placeholder
-        if st.query_params.get("response") == "no":
-            st.session_state.rejected.append(os.path.basename(label_path))
+    # Load next annotation or image
+    label_path = label_files[st.session_state.image_index]
+    with open(label_path) as f:
+        annotations = f.read().strip().splitlines()
 
-    st.session_state.image_index += 1
-    st.rerun()
+    if st.session_state.annotation_index >= len(annotations):
+        st.session_state.annotation_index = 0
+        st.session_state.image_index += 1
+        st.rerun()
 
-# --- Progress and stop session ---
-st.markdown(f"### {st.session_state.image_index + 1} / {len(image_files)} reviewed")
-if st.button("🚫 Stop Session"):
-    st.header("Session Stopped")
-    st.write("Rejected Annotations:")
-    for item in st.session_state.rejected:
-        st.text(item)
-    st.download_button("Download Rejected List", data="\n".join(st.session_state.rejected), file_name="rejected.txt")
-    st.stop()
+# Progress stats
+st.markdown("---")
+st.write(f"Progress: Image {st.session_state.image_index + 1} of {len(image_files)}")
