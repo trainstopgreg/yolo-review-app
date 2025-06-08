@@ -1,4 +1,4 @@
-ctimport os
+import os
 import glob
 import streamlit as st
 from PIL import Image
