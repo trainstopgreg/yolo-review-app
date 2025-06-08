@@ -68,10 +68,26 @@ cropped = image.crop((x, y, x + w, y + h))
 # Top row: Class name and buttons
 st.markdown(f"### Class: {class_names[int(class_id)]}")
 col1, col2 = st.columns([1, 1])
-with col1:
-    if st.button("✅ Yes - This is correct"):
-        st.session_state.annotation_index += 1
-        st.experimental_rerun()
+
+yes_clicked = col1.button("✅ Yes - This is correct")
+no_clicked = col2.button("❌ No - This is incorrect")
+
+if yes_clicked:
+    st.session_state.annotation_index += 1
+    st.experimental_rerun()
+
+if no_clicked:
+    st.session_state.rejected.append({
+        "image": os.path.basename(img_path),
+        "class_id": int(class_id),
+        "class_name": class_names[int(class_id)],
+        "bbox": [x, y, w, h],
+        "split": split
+    })
+    st.session_state.annotation_index += 1
+    st.experimental_rerun()
+
+
 with col2:
     if st.button("❌ No - This is incorrect"):
         st.session_state.rejected.append({
