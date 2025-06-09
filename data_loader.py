@@ -1,9 +1,14 @@
+import os
+
 def load_image(index):
-    # Load and return the image at the given index
-    pass
+    image_path = os.path.join("data", "images", f"image_{index+1:03d}.jpg")
+    return Image.open(image_path)
 
 def load_annotations(index):
-    # Load and return the YOLO annotations for the image at the given index
-    pass
+    annotation_path = os.path.join("data", "annotations", f"image_{index+1:03d}.json")
+    with open(annotation_path, "r") as f:
+        annotations = json.load(f)
+    return annotations
 
-total_images = 0  # Set this to the total number of images in your dataset
+def total_images():
+    return len(os.listdir(os.path.join("data", "images")))
