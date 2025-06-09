@@ -55,7 +55,7 @@ if 'last_image_index' not in st.session_state:
     st.session_state.last_image_index = -1
 
 
-# --- HELPER FUNCTIONS --- (same as before) ...
+# --- HELPER FUNCTIONS ---
 def resize_with_padding(image, target_size=IMAGE_SIZE):
     """
     Resize an image to fit within (target_size x target_size)
@@ -68,11 +68,16 @@ def resize_with_padding(image, target_size=IMAGE_SIZE):
         # Wider image
         new_width = target_size
         new_height = int(target_size / aspect_ratio)
+        # Ensure new_height is at least 1 to avoid errors
+        new_height = max(1, new_height)
     else:
-        # Taller image
+        # Taller image or square
         new_height = target_size
         new_width = int(target_size * aspect_ratio)
+        # Ensure new_width is at least 1 to avoid errors
+        new_width = max(1, new_width)
 
+    # Resize the image
     resized_img = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
     # Create black background
@@ -129,6 +134,12 @@ def main():
             font-size: 16px; /* Adjust as needed */
             font-weight: 400;
         }
+        .normal-text {
+            font-family: "Source Sans Pro", sans-serif; /* Streamlit's default font */
+            font-size: 16px; /* Adjust as needed */
+            font-weight: 400;
+            text-align: center;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -137,12 +148,12 @@ def main():
     col1, col2, col3 = st.columns([1, 1, 1]) # Three columns for image navigation
     current_image_index = st.session_state.current_image_index + 1  # 1-indexed
     with col1:
-        if st.button("◀️ Prev", key="prev_image"):  # Unique key for Prev Image
+        if st.button("◀️ Prev", key="prev_image"):
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        st.markdown(f"<p style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</p>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
     with col3:
-        if st.button("Next ▶️", key="next_image"):  # Unique key for Next Image
+        if st.button("Next ▶️", key="next_image"):
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
 
 
@@ -157,19 +168,6 @@ def main():
 
     annotations = load_annotation(entry, num_classes=NUM_CLASSES)
 
-    # --- ANNOTATION INDEX RESET ---
-    if st.session_state.last_image_index != idx:
-        st.session_state.current_annotation_idx = 0
-        st.session_state.last_image_index = idx
-
-    if not annotations:
-        st.warning("No annotations for this image.")
-        # Display the full image even without annotations
-        st.image(original_image, caption="Original Image", use_container_width=True)
-        return
-
-    max_ann_idx = len(annotations) - 1
-
     # --- ANNOTATION NAVIGATION ---
     col_prev, col_class, col_next = st.columns([1, 1, 1])  # Three columns
     ann_idx = st.session_state.current_annotation_idx
@@ -178,12 +176,12 @@ def main():
     class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
 
     with col_prev:
-        if st.button("◀️ Prev", key="prev_annotation"):  # Unique key for Prev Annotation
+        if st.button("◀️ Prev", key="prev_annotation"):
             st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
     with col_class:
-        st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>{class_name}</h3>", unsafe_allow_html=True) # Center Alignment
+        st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True) # Use paragraph tag with normal-text class
     with col_next:
-        if st.button("Next ▶️", key="next_annotation"):  # Unique key for Next Annotation
+        if st.button("Next ▶️", key="next_annotation"):
             if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1: #Last annotation and not last image
                 st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
             else:
