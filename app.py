@@ -58,7 +58,7 @@ def main():
     # Display image
     buf = io.BytesIO()
     image_with_boxes.save(buf, format="PNG")
-    st.image(buf.getvalue(), use_column_width=True)
+    st.image(buf.getvalue(), use_container_width=True)
 
     # Initialize annotation index for this image if not present
     if 'current_annotation_idx' not in st.session_state or st.session_state.current_image_index != getattr(st.session_state, 'last_image_index', -1):
