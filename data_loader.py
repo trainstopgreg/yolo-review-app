@@ -2,6 +2,7 @@ import os
 
 def load_image(index):
     image_path = os.path.join("dataset", "train", "images", f"image_{index+1:03d}.jpg")
+    st.write(f"Image {image_path}.")
     return Image.open(image_path)
 
 def load_annotations(index):
