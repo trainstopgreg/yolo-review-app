@@ -17,6 +17,31 @@ if 'current_annotation_idx' not in st.session_state:
 if 'last_image_index' not in st.session_state:
     st.session_state.last_image_index = -1
 
+def resize_with_padding(image, target_size=390):
+    """
+    Resize the image to fit within (target_size x target_size)
+    while maintaining aspect ratio, and pad with black bars.
+    """
+    original_width, original_height = image.size
+    aspect_ratio = original_width / original_height
+    if aspect_ratio > 1:
+        # Width is greater, resize width to target_size
+        new_width = target_size
+        new_height = int(target_size / aspect_ratio)
+    else:
+        # Height is greater or equal, resize height to target_size
+        new_height = target_size
+        new_width = int(target_size * aspect_ratio)
+    resized_img = image.resize((new_width, new_height), Image.ANTIALIAS)
+
+    # Create black background
+    new_img = Image.new("RGB", (target_size, target_size), (0, 0, 0))
+    # Paste resized image centered
+    paste_x = (target_size - new_width) // 2
+    paste_y = (target_size - new_height) // 2
+    new_img.paste(resized_img, (paste_x, paste_y))
+    return new_img
+
 def get_annotation_crop(image, annotation):
     # Calculate bbox in resized image (390x390)
     class_id, x_center, y_center, box_width, box_height = annotation
@@ -81,9 +106,13 @@ def main():
     # Get crop of annotation
     annotation_img = get_annotation_crop(original_image, annotation)
 
-    # Display the cropped annotation image
-    # st.image(annotation_img, caption=f"Annotation {ann_idx + 1}", use_column_width=True)
-    st.image(annotation_img, caption=f"Annotation {ann_idx + 1}", use_container_width=True)
+    # Get the annotation crop with aspect ratio maintained and black bars added
+    annotation_img = get_annotation_crop(original_image, annotation)
+    display_img = resize_with_padding(annotation_img, target_size=390)
+
+    # Show the image in Streamlit
+    st.image(display_img, caption=f"Annotation {ann_idx + 1}", use_container_width=True)
+
 
     # Flagging
     flag_key = f"{idx}_ann_{ann_idx}"
