@@ -11,7 +11,7 @@ BUTTON_WIDTH = 80  # Set button width in pixels
 CENTER_COL_WIDTH = 220  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
-CONTAINER_WIDTH = 380 #container.
+CONTAINER_WIDTH = 380  # container.
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", os.path.join("dataset", "train", "images"))
@@ -153,7 +153,7 @@ def get_annotation_crop(image, annotation):
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
-      # --- Inject CSS to control image stretching and alignment ---
+    # --- Inject CSS to control image stretching and alignment ---
     st.markdown(f"""
         <style>
         .container {{
@@ -203,18 +203,15 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    
     # --- NAVIGATION ---
     current_image_index = st.session_state.current_image_index + 1  # 1-indexed
-    image_counter_text = f"Image {current_image_index}/{total_imgs}"
-
     st.markdown(f"""<div class='container'>
             <div class='nav-container'>
              <div class='streamlit-button'>
             <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
              </div>
              <div class='normal-text'>
-                  <p>{image_counter_text}</p>
+                  <p>Image {current_image_index}/{total_imgs}</p>
                  </div>
               <div class='streamlit-button'>
             <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
@@ -229,7 +226,7 @@ def main():
 
     if original_image is None:
         st.error(f"Failed to load image: {entry['image_path']}")
-        return # Skip to the next image
+        return  # Skip to the next image
 
     annotations = load_annotation(entry, num_classes=NUM_CLASSES)
 
@@ -246,18 +243,28 @@ def main():
 
     max_ann_idx = len(annotations) - 1
 
-   #Adding to main container
+    # Initializing to avoid unassigned before reference
+    class_name = "No Annotations"
+    ann_idx = 0
+
+    if annotations:
+         ann_idx = st.session_state.current_annotation_idx
+         annotation = annotations[ann_idx]
+         class_id = annotation[0]  # Get the class ID
+         class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
+
+    # Adding to main container
     st.markdown(f"""<div class='container'><div class='nav-container'>
-                <div class='streamlit-button'>
-                <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
-                </div>
-                <div class='normal-text'>
-                <p >{CLASS_NAMES[0] if CLASS_NAMES else "class_name"}</p>
-                </div>
-                <div class='streamlit-button'>
-                 <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
-                </div>
-                </div>""", unsafe_allow_html=True)
+                    <div class='streamlit-button'>
+                    <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
+                    </div>
+                    <div class='normal-text'>
+                    <p >{class_name}</p>
+                    </div>
+                    <div class='streamlit-button'>
+                     <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
+                    </div>
+                    </div>""", unsafe_allow_html=True)
 
     # --- DISPLAY ANNOTATION CROP ---
     display_img = get_annotation_crop(original_image, annotation)
@@ -284,7 +291,6 @@ def main():
             st.success("Annotation unflagged!")
             if not st.session_state.flagged_items[idx]:
                 del st.session_state.flagged_items[idx]
-
 
     # --- SHOW FLAGGED ITEMS ---
     with st.expander("Flagged Items"):
