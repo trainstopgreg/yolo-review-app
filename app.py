@@ -11,7 +11,7 @@ st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 # --- CONFIGURATION ---
 MAX_ANNOTATION_SIZE = 380  # Maximum size for annotation crops
 BUTTON_WIDTH = 80  # Set button width in pixels
-CENTER_COL_WIDTH = 220  # Set center column width in pixels
+CENTER_COL_WIDTH = 150  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
 CONTAINER_WIDTH = 380  # container width in pixels.
