@@ -10,7 +10,6 @@ except ImportError:
 
 import json
 import io
-
 import os
 from PIL import Image
 
