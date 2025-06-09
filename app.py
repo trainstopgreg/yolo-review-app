@@ -51,63 +51,70 @@ def draw_bounding_boxes(image, annotations):
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
-    st.title("YOLO Annotation Review")
+    # Load all data once
+    images = load_all_images()
+    annotations_list = load_all_annotations()
+    total_imgs = len(images)
 
-    # Session state to keep track of current image and flagged items
+    # Initialize session state variables if not already
     if 'current_image' not in st.session_state:
         st.session_state.current_image = 0
+    if 'flagged_items' not in st.session_state:
         st.session_state.flagged_items = {}
 
     # Navigation
-    col1, col2, col3 = st.columns([1,2,1])
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
         if st.button("◀️ Previous", use_container_width=True):
             st.session_state.current_image = max(0, st.session_state.current_image - 1)
     with col2:
-        st.text(f"Image {st.session_state.current_image + 1} / {total_images}")
+        st.text(f"Image {st.session_state.current_image + 1} / {total_imgs}")
     with col3:
         if st.button("Next ▶️", use_container_width=True):
-            st.session_state.current_image = min(total_images - 1, st.session_state.current_image + 1)
+            st.session_state.current_image = min(total_imgs - 1, st.session_state.current_image + 1)
 
-    # Load and display image with annotations
-    image = load_image(st.session_state.current_image)
-    annotations = load_annotations(st.session_state.current_image)
+    # Get current image and annotations
+    idx = st.session_state.current_image
+    image = images[idx]
+    annotations = annotations_list[idx]
+    
+    # Draw boxes
     image_with_boxes = draw_bounding_boxes(image, annotations)
     
-    # Convert PIL Image to bytes for Streamlit
+    # Display image
     buf = io.BytesIO()
     image_with_boxes.save(buf, format="PNG")
     st.image(buf.getvalue(), use_column_width=True)
 
     # Flag entire image
     if st.button("🚩 Flag Entire Image", use_container_width=True):
-        st.session_state.flagged_items[st.session_state.current_image] = "entire_image"
+        st.session_state.flagged_items[idx] = "entire_image"
         st.success("Image flagged!")
 
-    # Display and flag individual annotations
+    # View annotations
     with st.expander("View Annotations"):
-        for idx, ann in enumerate(annotations):
-            col1, col2 = st.columns([3,1])
+        for ann_idx, ann in enumerate(annotations):
+            col1, col2 = st.columns([3, 1])
             with col1:
                 st.text(f"Class: {ann[0]}, Coords: {ann[1:]}")
             with col2:
-                if st.checkbox("Flag", key=f"flag_{idx}"):
-                    if st.session_state.current_image not in st.session_state.flagged_items:
-                        st.session_state.flagged_items[st.session_state.current_image] = []
-                    st.session_state.flagged_items[st.session_state.current_image].append(idx)
-                    st.success(f"Annotation {idx} flagged!")
+                if st.checkbox("Flag", key=f"flag_{ann_idx}"):
+                    if idx not in st.session_state.flagged_items:
+                        st.session_state.flagged_items[idx] = []
+                    st.session_state.flagged_items[idx].append(ann_idx)
+                    st.success(f"Annotation {ann_idx} flagged!")
 
-    # Display flagged items
+    # Show flagged items
     with st.expander("Flagged Items"):
         if st.session_state.flagged_items:
             for img_idx, flags in st.session_state.flagged_items.items():
                 if flags == "entire_image":
                     st.write(f"Image {img_idx + 1} flagged.")
                 else:
-                    st.write(f"Image {img_idx + 1} has the following annotations flagged: {', '.join(map(str, flags))}")
+                    st.write(f"Image {img_idx + 1} has annotations flagged: {', '.join(map(str, flags))}")
         else:
             st.write("No items have been flagged yet.")
-    pass
+
 
 if __name__ == "__main__":
     main()
