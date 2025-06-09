@@ -59,7 +59,7 @@ if 'last_image_index' not in st.session_state:
     st.session_state.last_image_index = -1
 
 # --- HELPER FUNCTIONS ---
-def resize_with_padding(image, target_size=MAX极_ANNOTATION_SIZE):
+def resize_with_padding(image, target_size=MAX_ANNOTATION_SIZE):
     """
     Resize an image to fit within (target_size x target_size)
     maintaining aspect ratio, adding black bars if needed.
@@ -77,7 +77,7 @@ def resize_with_padding(image, target_size=MAX极_ANNOTATION_SIZE):
         # Taller image or square
         new_height = target_size
         new_width = int(target_size * aspect_ratio)
-        # Ensure new_width is at least 极1 to avoid errors
+        # Ensure new_width is at least 1 to avoid errors
         new_width = max(1, new_width)
 
     # Resize the image
@@ -132,7 +132,7 @@ def get_annotation_crop(image, annotation):
     y2 = min(img_height, y2)
 
     # Crop the annotation area
-    crop_box = (极x1, y1, x2, y2)
+    crop_box = (x1, y1, x2, y2)
     try:
         annotation_img = image.crop(crop_box)
     except Exception as e:
@@ -193,7 +193,7 @@ def main():
             font-weight: 400;
             text-align: center;
             width: {CENTER_COL_WIDTH}px !important;
-            height: {ROW_HEIGHT极}px !important;
+            height: {ROW_HEIGHT}px !important;
             flex-shrink: 0; /* Prevent text from shrinking */
             white-space: nowrap; /* Prevent text wrapping */
         }}
@@ -279,7 +279,7 @@ def main():
     flag_key = f"{idx}_ann_{ann_idx}"
     if st.checkbox("Flag this annotation for review", key=flag_key):
         if idx not in st.session_state.flagged_items:
-            st.session_state.flagged_items[idx极] = []
+            st.session_state.flagged_items[idx] = []
         if ann_idx not in st.session_state.flagged_items[idx]:
             st.session_state.flagged_items[idx].append(ann_idx)
             st.success("Annotation flagged!")
