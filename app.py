@@ -10,9 +10,11 @@ NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset
 
 # Class names mapping (replace with your actual class names)
 CLASS_NAMES = {
-    0: "ball",
-    1: "player",
-    2: "referee",
+    0: "person",
+    1: "car",
+    2: "bicycle",
+    3: "dog",
+    4: "cat",
     # Add more classes as needed
 }
 
@@ -107,15 +109,17 @@ def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
     # --- NAVIGATION ---
-    col1, col2 = st.columns([1, 1]) # Adjusted column width
+    col1, col2, col3 = st.columns([1, 1, 1]) # Three columns for image navigation
+    current_image_index = st.session_state.current_image_index + 1  # 1-indexed
     with col1:
-        if st.button("◀️ Previous Image"): # Clear labels
+        if st.button("◀️ Previous Image"):
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        if st.button("Next Image ▶️"): # Clear labels
+        st.markdown(f"<h3 style='text-align: center;'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
+    with col3:
+        if st.button("Next Image ▶️"):
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
 
-    st.write(f"Image {st.session_state.current_image_index + 1} / {total_imgs}")  # Display Counter
 
     idx = st.session_state.current_image_index
     entry = dataset[idx]
