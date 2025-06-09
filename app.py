@@ -8,7 +8,7 @@ import yaml  # Import the YAML library
 # --- CONFIGURATION ---
 IMAGE_SIZE = 390  # Size to resize images for display
 BUTTON_WIDTH = 80  # Set button width in pixels
-CENTER_COL_WIDTH = 220  # Set center column width in pixels
+CENTER_COL_WIDTH = 200  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
 
