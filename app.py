@@ -11,6 +11,7 @@ BUTTON_WIDTH = 80  # Set button width in pixels
 CENTER_COL_WIDTH = 220  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
+CONTAINER_WIDTH = 380 #container.
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", os.path.join("dataset", "train", "images"))
@@ -152,11 +153,21 @@ def get_annotation_crop(image, annotation):
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
-    # --- Inject CSS to control button size, text alignment, and vertical alignment ---
+    # --- Inject CSS to control image stretching and alignment ---
     st.markdown(f"""
         <style>
+        .container {{
+            width: {CONTAINER_WIDTH}px !important;
+            margin: 0 auto; /* Center the container */
+        }}
+        img {{
+            max-width: 100%; /* Ensure images don't exceed their container */
+            height: auto;    /* Maintain aspect ratio */
+            display: block;  /* Remove extra space below image */
+            margin: 0 auto;   /*Center the image */
+        }}
         .nav-container {{
-            width: {TOTAL_WIDTH}px !important;
+            width: 100% !important; /* Takes 100% of the container */
             display: flex;
             flex-direction: row;
             justify-content: space-between;
@@ -189,22 +200,25 @@ def main():
     """, unsafe_allow_html=True)
 
     # --- NAVIGATION ---
-    col1, col2, col3 = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH]) # Fixed column widths
-    current_image_index = st.session_state.current_image_index + 1  # 1-indexed
-    with col1:
-        if st.button("◀️ Prev", key="prev_image"):
-            st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
-    with col2:
-        st.markdown(f"<p class='normal-text'>Image {current_image_index}/{total_imgs}</p>", unsafe_allow_html=True)
-    with col3:
-        if st.button("Next ▶️", key="next_image"):
-            st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
 
+    st.markdown(f"""<div class='container'>
+            <div class='nav-container'>
+             <div class='streamlit-button'>
+            <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
+             </div>
+             <div class='normal-text'>
+                  <p>Image {{st.session_state.current_image_index + 1}}/{{total_imgs}}</p>
+                 </div>
+              <div class='streamlit-button'>
+            <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
+                  </div>
+             </div>
+            </div>""", unsafe_allow_html=True)
 
+    # --- LOAD IMAGE & ANNOTATIONS ---
     idx = st.session_state.current_image_index
     entry = dataset[idx]
 
-    # --- LOAD IMAGE & ANNOTATIONS ---
     original_image = load_image(entry)
 
     if original_image is None:
