@@ -1,140 +1,103 @@
-import streamlit as st
-import io
-from data_loader import get_dataset, load_image, load_annotation
+import os
 from PIL import Image
+import logging
 
-# Load dataset once
-dataset = get_dataset()
-total_imgs = len(dataset)
+# Configure logging
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
-# Initialize session state
-if 'current_image_index' not in st.session_state:
-    st.session_state.current_image_index = 0
-if 'flagged_items' not in st.session_state:
-    st.session_state.flagged_items = {}
-if 'current_annotation_idx' not in st.session_state:
-    st.session_state.current_annotation_idx = 0
-if 'last_image_index' not in st.session_state:
-    st.session_state.last_image_index = -1
-
-def resize_with_padding(image, target_size=390):
+def load_data(images_dir, labels_dir, label_extension=".txt", image_extensions=('.jpg', '.jpeg', '.png')):
     """
-    Resize an image to fit within (target_size x target_size)
-    maintaining aspect ratio, adding black bars if needed.
+    Loads image and label data from specified directories.
+
+    Args:
+        images_dir: Path to the directory containing images.
+        labels_dir: Path to the directory containing label files.
+        label_extension: Extension of the label files (default: ".txt").
+        image_extensions: Tuple of allowed image file extensions (default: ('.jpg', '.jpeg', '.png')).
+
+    Returns:
+        A list of dictionaries, where each dictionary represents an image and its corresponding label file.
     """
-    original_width, original_height = image.size
-    aspect_ratio = original_width / original_height
+    dataset = []
 
-    if aspect_ratio > 1:
-        # Wider image
-        new_width = target_size
-        new_height = int(target_size / aspect_ratio)
-    else:
-        # Taller image
-        new_height = target_size
-        new_width = int(target_size * aspect_ratio)
-    resized_img = image.resize((new_width, new_height), Image.ANTIALIAS)
+    for img_filename in os.listdir(images_dir):
+        if img_filename.lower().endswith(image_extensions):
+            base_name = os.path.splitext(img_filename)[0]
+            label_filename = base_name + label_extension
+            label_path = os.path.join(labels_dir, label_filename)
+            image_path = os.path.join(images_dir, img_filename)
 
-    # Create black background
-    new_img = Image.new("RGB", (target_size, target_size), (0, 0, 0))
-    # Center the resized image
-    paste_x = (target_size - new_width) // 2
-    paste_y = (target_size - new_height) // 2
-    new_img.paste(resized_img, (paste_x, paste_y))
-    return new_img
-
-def get_annotation_crop(image, annotation):
-    # Calculate bbox coordinates in the resized image (390x390)
-    class_id, x_center, y_center, box_width, box_height = annotation
-    x_center, y_center = x_center * 390, y_center * 390
-    box_width, box_height = box_width * 390, box_height * 390
-    x1 = int(x_center - box_width / 2)
-    y1 = int(y_center - box_height / 2)
-    x2 = int(x_center + box_width / 2)
-    y2 = int(y_center + box_height / 2)
-
-    # Resize original image to 390x390
-    resized_image = image.resize((390, 390))
-    # Crop the annotation area
-    crop_box = (x1, y1, x2, y2)
-    annotation_img = resized_image.crop(crop_box)
-    # Resize annotation crop with padding to maintain aspect ratio
-    display_img = resize_with_padding(annotation_img, target_size=390)
-    return display_img
-
-def main():
-    st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
-
-    # Navigation for images
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col1:
-        if st.button("◀️ Previous", use_container_width=True):
-            st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
-    with col2:
-        st.write(f"Image {st.session_state.current_image_index + 1} / {total_imgs}")
-    with col3:
-        if st.button("Next ▶️", use_container_width=True):
-            st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
-
-    idx = st.session_state.current_image_index
-    entry = dataset[idx]
-
-    # Load image & annotations
-    original_image = load_image(entry)
-    annotations = load_annotation(entry)
-
-    # Reset annotation index when switching images
-    if st.session_state.last_image_index != idx:
-        st.session_state.current_annotation_idx = 0
-        st.session_state.last_image_index = idx
-
-    if not annotations:
-        st.write("No annotations for this image.")
-        return
-
-    max_ann_idx = len(annotations) - 1
-
-    # Annotation navigation
-    col_prev, col_next = st.columns([1, 1])
-    with col_prev:
-        if st.button("Previous Annotation"):
-            st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
-    with col_next:
-        if st.button("Next Annotation"):
-            st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
-
-    ann_idx = st.session_state.current_annotation_idx
-    annotation = annotations[ann_idx]
-
-    # Get and display annotation crop with padding
-    display_img = get_annotation_crop(original_image, annotation)
-
-    # Display the cropped annotation image with aspect ratio maintained and black bars
-    st.image(display_img, caption=f"Annotation {ann_idx + 1}", use_container_width=True)
-
-    # Flag this annotation
-    flag_key = f"{idx}_ann_{ann_idx}"
-    if st.checkbox("Flag this annotation for review", key=flag_key):
-        if idx not in st.session_state.flagged_items:
-            st.session_state.flagged_items[idx] = []
-        if ann_idx not in st.session_state.flagged_items[idx]:
-            st.session_state.flagged_items[idx].append(ann_idx)
-            st.success("Annotation flagged!")
-
-    # Show flagged items
-    with st.expander("Flagged Items"):
-        flagged = st.session_state.flagged_items
-        if flagged:
-            for img_idx, flags in flagged.items():
-                if flags == "entire_image":
-                    st.write(f"Image {img_idx + 1} flagged.")
-                else:
-                    flagged_ann_str = ', '.join(str(f) for f in flags)
-                    st.write(f"Image {img_idx + 1} has annotations flagged: {flagged_ann_str}")
-        else:
-            st.write("No items have been flagged yet.")
+            dataset.append({
+                'image_path': image_path,
+                'label_path': label_path,
+                'filename': img_filename
+            })
+    return dataset
 
 
-if __name__ == "__main__":
-    main()
+def load_image(entry):
+    """Load image from file using the dataset entry."""
+    return Image.open(entry['image_path'])
 
+
+def load_annotation(entry, num_classes=80):  # Example: 80 classes (COCO)
+    """Load annotations from label file (YOLO format assumed)."""
+    try:
+        with open(entry['label_path'], 'r') as f:
+            lines = f.readlines()
+        annotations = []
+        for line in lines:
+            parts = line.strip().split()
+            if len(parts) != 5:
+                logging.warning(f"Skipping malformed line in {entry['label_path']}: {line}")
+                continue
+            try:
+                class_id = int(parts[0])
+                x_center = float(parts[1])
+                y_center = float(parts[2])
+                box_width = float(parts[3])
+                box_height = float(parts[4])
+            except ValueError:
+                logging.warning(f"Skipping line with invalid number format in {entry['label_path']}: {line}")
+                continue
+
+            if not (0 <= class_id < num_classes and 0 <= x_center <= 1 and 0 <= y_center <= 1 and 0 <= box_width <= 1 and 0 <= box_height <= 1):
+                logging.warning(f"Skipping invalid annotation in {entry['label_path']}: {line}")
+                continue
+
+            annotations.append([class_id, x_center, y_center, box_width, box_height])
+        return annotations
+    except FileNotFoundError:
+        logging.warning(f"Label file not found: {entry['label_path']}")
+        return []  # If label file doesn't exist, return empty list
+
+
+class Dataset:
+    def __init__(self, images_dir, labels_dir, label_extension=".txt", image_extensions=('.jpg', '.jpeg', '.png')):
+        self.dataset = load_data(images_dir, labels_dir, label_extension, image_extensions)
+
+    def get_dataset(self):
+        """Return the dataset list of dicts."""
+        return self.dataset
+
+    def total_images(self):
+        """Return total number of images."""
+        return len(self.dataset)
+
+# Example Usage
+if __name__ == '__main__':
+    # Define your directories
+    images_dir = os.path.join("dataset", "train", "images")
+    labels_dir = os.path.join("dataset", "train", "labels")
+
+    # Create dataset
+    dataset_obj = Dataset(images_dir, labels_dir)
+    dataset = dataset_obj.get_dataset()
+
+    # Now you can use dataset in your Streamlit app
+    # Example:
+    print(f"Total images: {dataset_obj.total_images()}")
+    if dataset:
+        print(f"First image path: {dataset[0]['image_path']}")
+        annotations = load_annotation(dataset[0])
+        print(f"Annotations for first image: {annotations}")
