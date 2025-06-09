@@ -97,7 +97,7 @@ def main():
     ann_idx = 0
     # --- ANNOTATION NAVIGATION ---
     with st.container():  # ADD THE CONTAINER HERE
-        col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH,极 BUTTON_WIDTH])
+        col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])
         if annotations:
             ann_idx = st.session_state.current_annotation_idx
             annotation = annotations[ann_idx]
@@ -112,7 +112,7 @@ def main():
         with col_next:
             if st.button("Next ▶️", key="next_annotation"):
                 if annotations:
-                    if ann_idx == max_ann_idx and st.session_state.current_image_index < total极_imgs - 1:  # Last annotation and not last image
+                    if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1:  # Last annotation and not last image
                         st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
                     else:
                         st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
