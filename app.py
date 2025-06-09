@@ -11,7 +11,7 @@ BUTTON_WIDTH = 80  # Set button width in pixels
 CENTER_COL_WIDTH = 220  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
-CONTAINER_WIDTH = 380  # container.
+CONTAINER_WIDTH = 380  # container width in pixels.
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", os.path.join("dataset", "train", "images"))
@@ -165,12 +165,11 @@ def main():
             margin: 0 auto;   /*Center the image */
         }}
         .nav-container {{
-            width: 100% !important; /* Takes 100% of the container */
+            width: {CONTAINER_WIDTH}px !important; /* Takes 100% of the container */
             display: flex;
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
-             justify-content: space-between; /* Space out items */
         }}
 
         .streamlit-button {{
@@ -189,18 +188,6 @@ def main():
             text-align: center;
             width: {CENTER_COL_WIDTH}px !important;
             height: {ROW_HEIGHT}px !important; /* Consistent height for text */
-        }}
-         /* Fix button display*/
-         [data-testid="stHorizontalBlock"] > div:nth-child(1) {{
-            width: {BUTTON_WIDTH}px;
-        }}
-
-        [data-testid="stHorizontalBlock"] > div:nth-child(3) {{
-            width: {BUTTON_WIDTH}px;
-        }}
-
-        [data-testid="stHorizontalBlock"] > div:nth-child(2) {{
-            width: {CENTER_COL_WIDTH}px;
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -278,7 +265,7 @@ def main():
         return
 
     # Display the cropped annotation image with aspect ratio maintained and black bars
-    st.image(display_img, caption=f"Annotation {ann_idx + 1}", width=MAX_ANNOTATION_SIZE)
+    st.image(display_img, caption=f"Annotation {ann_idx + 1}", width=CONTAINER_WIDTH)
 
     # --- FLAGGING ---
     flag_key = f"{idx}_ann_{ann_idx}"
