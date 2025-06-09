@@ -1,6 +1,6 @@
 import streamlit as st
 import io
-from data_loader import get_dataset, load_image, load_annotation, Dataset
+from data_loader import load_image, load_annotation, Dataset  # Corrected import
 from PIL import Image
 import os
 
@@ -15,7 +15,7 @@ LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train/labels")
 # --- DATA LOADING ---
 try:
     dataset_obj = Dataset(IMAGES_DIR, LABELS_DIR)
-    dataset = dataset_obj.get_dataset()
+    dataset = dataset_obj.get_dataset()  # Access get_dataset through the object
     total_imgs = dataset_obj.total_images()
 except Exception as e:
     st.error(f"Error loading dataset: {e}.  Check IMAGES_DIR and LABELS_DIR.")
