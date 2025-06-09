@@ -159,6 +159,10 @@ def main():
         .container {{
             width: {CONTAINER_WIDTH}px !important;
             margin: 0 auto; /* Center the container */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
         }}
         img {{
             max-width: 100%; /* Ensure images don't exceed their container */
@@ -212,8 +216,7 @@ def main():
               <div class='streamlit-button'>
             <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
                   </div>
-             </div>
-            </div>""", unsafe_allow_html=True)
+             </div>""", unsafe_allow_html=True)
 
     # --- LOAD IMAGE & ANNOTATIONS ---
     idx = st.session_state.current_image_index
@@ -240,25 +243,18 @@ def main():
 
     max_ann_idx = len(annotations) - 1
 
-    # --- ANNOTATION NAVIGATION ---
-    col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH]) #Fixed column widths
-    ann_idx = st.session_state.current_annotation_idx
-    annotation = annotations[ann_idx]
-    class_id = annotation[0] # Get the class ID
-    class_name = CLASS_NAMES[class_id] # Look up the class name - use direct indexing
-
-    with col_prev:
-        if st.button("◀️ Prev", key="prev_annotation"):
-            st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
-    with col_class:
-        st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True) # Use paragraph tag with normal-text class
-    with col_next:
-        if st.button("Next ▶️", key="next_annotation"):
-            if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1: #Last annotation and not last image
-                st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
-            else:
-                st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
-
+   #Adding to main container
+    st.markdown(f"""<div class='container'><div class='nav-container'>
+                <div class='streamlit-button'>
+                <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
+                </div>
+                <div class='normal-text'>
+                <p >{CLASS_NAMES[0] if CLASS_NAMES else "class_name"}</p>
+                </div>
+                <div class='streamlit-button'>
+                 <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
+                </div>
+                </div>""", unsafe_allow_html=True)
 
     # --- DISPLAY ANNOTATION CROP ---
     display_img = get_annotation_crop(original_image, annotation)
