@@ -1,92 +1,99 @@
 import os
-import streamlit as st
-from PIL import Image, ImageDraw
+import zipfile
+import io
 import pandas as pd
+from PIL import Image, ImageDraw
+import streamlit as st
 
-# Set your directories here
-IMAGE_DIR = 'dataset/test/images/'
-ANNOTATION_DIR = 'dataset/test/labels/'
+# Title
+st.title("YOLO v1.1 ZIP Upload & Annotation Review Tool")
 
-# List image files
-images = [f for f in os.listdir(IMAGE_DIR) if f.endswith(('.jpg', '.png'))]
+# Upload ZIP containing images and annotations
+uploaded_zip = st.file_uploader("Upload ZIP with images and YOLO annotations", type=["zip"])
 
-# Streamlit app title
-st.title("YOLO Annotation Review Tool")
+# Initialize data holders
+images_data = {}
+annotations_data = {}
 
-# Select an image
-selected_image = st.selectbox("Select an image", images)
+if uploaded_zip:
+    # Read ZIP file into memory
+    with zipfile.ZipFile(uploaded_zip) as z:
+        # List all file names
+        file_list = z.namelist()
+        # Filter image files
+        image_files = [f for f in file_list if f.lower().endswith(('.jpg', '.png'))]
+        # Find all annotation files
+        annotation_files = [f for f in file_list if f.lower().endswith('.txt')]
 
-if selected_image:
-    # Load image
-    img_path = os.path.join(IMAGE_DIR, selected_image)
-    image = Image.open(img_path)
-    img_width, img_height = image.size
+        # Load images into dictionary
+        for img_file in image_files:
+            with z.open(img_file) as img_f:
+                img_bytes = img_f.read()
+                image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                images_data[img_file] = image
 
-    # Load annotations
-    def load_annotations(image_name):
-        txt_path = os.path.join(ANNOTATION_DIR, image_name.rsplit('.', 1)[0] + '.txt')
-        if os.path.exists(txt_path):
-            data = []
-            with open(txt_path, 'r') as f:
-                for line in f:
-                    parts = line.strip().split()
-                    if len(parts) == 5:
-                        class_id, x_center, y_center, width, height = parts
-                        data.append({
-                            'class_id': class_id,
-                            'x_center': float(x_center),
-                            'y_center': float(y_center),
-                            'width': float(width),
-                            'height': float(height),
-                            'review': None  # To store 'correct' or 'incorrect'
-                        })
-            return pd.DataFrame(data)
-        else:
-            return pd.DataFrame(columns=['class_id', 'x_center', 'y_center', 'width', 'height', 'review'])
+        # Load annotations into dictionary
+        for ann_file in annotation_files:
+            df = pd.DataFrame(columns=['class_id', 'x_center', 'y_center', 'width', 'height', 'review'])
+            with z.open(ann_file) as ann_f:
+                for line in ann_f:
+                    line_str = line.decode('utf-8').strip()
+                    if line_str:
+                        parts = line_str.split()
+                        if len(parts) == 5:
+                            class_id, x_c, y_c, w, h = parts
+                            df = df.append({'class_id': class_id,
+                                            'x_center': float(x_c),
+                                            'y_center': float(y_c),
+                                            'width': float(w),
+                                            'height': float(h),
+                                            'review': None}, ignore_index=True)
+            # Save annotation with a key matching image filename
+            base_name = os.path.basename(ann_file).replace('.txt', '')
+            annotations_data[base_name] = df
 
-    # Load the annotations for the selected image
-    annotations_df = load_annotations(selected_image)
+    st.success(f"Loaded {len(images_data)} images and {len(annotations_data)} annotation files.")
 
-    # Function to draw bounding boxes on the image
-    def draw_bboxes(img, df):
-        img_draw = img.copy()
-        draw = ImageDraw.Draw(img_draw)
-        for _, row in df.iterrows():
-            xmin = int((row['x_center'] - row['width'] / 2) * img_width)
-            xmax = int((row['x_center'] + row['width'] / 2) * img_width)
-            ymin = int((row['y_center'] - row['height'] / 2) * img_height)
-            ymax = int((row['y_center'] + row['height'] / 2) * img_height)
-            color = 'blue'
-            if row['review'] == 'correct':
-                color = 'green'
-            elif row['review'] == 'incorrect':
-                color = 'red'
-            draw.rectangle([xmin, ymin, xmax, ymax], outline=color, width=2)
-        return img_draw
+# Let user select image from uploaded data
+if images_data:
+    image_names = list(images_data.keys())
+    selected_image_name = st.selectbox("Select an image to review", image_names)
 
-    # Display the image with bounding boxes
-    annotated_image = draw_bboxes(image, annotations_df)
-    st.image(annotated_image, caption=selected_image)
+    if selected_image_name:
+        image = images_data[selected_image_name]
+        img_width, img_height = image.size
 
-    st.markdown("### Annotations")
-    # For each annotation, show class and buttons to mark correctness
-    for idx, row in annotations_df.iterrows():
-        st.write(f"Annotation {idx} - Class: {row['class_id']}")
-        col1, col2 = st.beta_columns(2)
-        with col1:
-            if st.button(f"Mark Correct", key=f"correct_{idx}"):
-                annotations_df.at[idx, 'review'] = 'correct'
-        with col2:
-            if st.button(f"Mark Incorrect", key=f"incorrect_{idx}"):
-                annotations_df.at[idx, 'review'] = 'incorrect'
-        # Show current review status
-        status = annotations_df.at[idx, 'review']
-        if status:
-            st.write(f"Status: {status}")
+        # Load annotations for this image
+        ann_df = annotations_data.get(selected_image_name, pd.DataFrame(
+            columns=['class_id', 'x_center', 'y_center', 'width', 'height', 'review']
+        ))
 
-    # Button to save the review results
-    if st.button("Save Reviews"):
-        save_path = os.path.join('reviews', selected_image + '_review.csv')
-        os.makedirs('reviews', exist_ok=True)
-        annotations_df.to_csv(save_path, index=False)
-        st.success(f"Review saved to {save_path}")
+        # Function to draw bounding boxes
+        def draw_bboxes(img, df):
+            img_draw = img.copy()
+            draw = ImageDraw.Draw(img_draw)
+            for _, row in df.iterrows():
+                xmin = int((row['x_center'] - row['width'] / 2) * img_width)
+                xmax = int((row['x_center'] + row['width'] / 2) * img_width)
+                ymin = int((row['y_center'] - row['height'] / 2) * img_height)
+                ymax = int((row['y_center'] + row['height'] / 2) * img_height)
+                color = 'blue'
+                if row['review'] == 'correct':
+                    color = 'green'
+                elif row['review'] == 'incorrect':
+                    color = 'red'
+                draw.rectangle([xmin, ymin, xmax, ymax], outline=color, width=2)
+            return img_draw
+
+        # Display annotated image
+        annotated_img = draw_bboxes(image, ann_df)
+        st.image(annotated_img, caption=selected_image_name)
+
+        st.markdown("### Annotations Review")
+        # For each annotation, provide check buttons to mark correct/incorrect
+        for idx, row in ann_df.iterrows():
+            st.write(f"Annotation {idx} - Class: {row['class_id']}")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"Mark Correct", key=f"correct_{selected_image_name}_{idx}"):
+                    ann_df.at[idx,
