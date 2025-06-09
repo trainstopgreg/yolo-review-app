@@ -1,99 +1,54 @@
-import os
-import zipfile
-import io
-import pandas as pd
-from PIL import Image, ImageDraw
 import streamlit as st
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+from PIL import Image
 
-# Title
-st.title("YOLO v1.1 ZIP Upload & Annotation Review Tool")
+def load_image(image_file):
+    img = Image.open(image_file)
+    return np.array(img)
 
-# Upload ZIP containing images and annotations
-uploaded_zip = st.file_uploader("Upload ZIP with images and YOLO annotations", type=["zip"])
+def load_annotations(annotation_file):
+    with open(annotation_file, 'r') as f:
+        lines = f.readlines()
+    return [line.strip().split() for line in lines]
 
-# Initialize data holders
-images_data = {}
-annotations_data = {}
+def draw_annotations(image, annotations, class_names):
+    img_height, img_width = image.shape[:2]
+    for ann in annotations:
+        class_id, x_center, y_center, width, height = map(float, ann)
+        x_center, y_center, width, height = x_center * img_width, y_center * img_height, width * img_width, height * img_height
+        x1, y1 = int(x_center - width / 2), int(y_center - height / 2)
+        x2, y2 = int(x_center + width / 2), int(y_center + height / 2)
+        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(image, class_names[int(class_id)], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+    return image
 
-if uploaded_zip:
-    # Read ZIP file into memory
-    with zipfile.ZipFile(uploaded_zip) as z:
-        # List all file names
-        file_list = z.namelist()
-        # Filter image files
-        image_files = [f for f in file_list if f.lower().endswith(('.jpg', '.png'))]
-        # Find all annotation files
-        annotation_files = [f for f in file_list if f.lower().endswith('.txt')]
+st.title("YOLO Dataset Annotation Reviewer")
 
-        # Load images into dictionary
-        for img_file in image_files:
-            with z.open(img_file) as img_f:
-                img_bytes = img_f.read()
-                image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-                images_data[img_file] = image
+# Step 1: File upload
+image_file = st.file_uploader("Upload Image", type=['png', 'jpg', 'jpeg'])
+annotation_file = st.file_uploader("Upload Annotation File", type=['txt'])
 
-        # Load annotations into dictionary
-        for ann_file in annotation_files:
-            df = pd.DataFrame(columns=['class_id', 'x_center', 'y_center', 'width', 'height', 'review'])
-            with z.open(ann_file) as ann_f:
-                for line in ann_f:
-                    line_str = line.decode('utf-8').strip()
-                    if line_str:
-                        parts = line_str.split()
-                        if len(parts) == 5:
-                            class_id, x_c, y_c, w, h = parts
-                            df = df.append({'class_id': class_id,
-                                            'x_center': float(x_c),
-                                            'y_center': float(y_c),
-                                            'width': float(w),
-                                            'height': float(h),
-                                            'review': None}, ignore_index=True)
-            # Save annotation with a key matching image filename
-            base_name = os.path.basename(ann_file).replace('.txt', '')
-            annotations_data[base_name] = df
+if image_file is not None and annotation_file is not None:
+    # Step 2: Image display
+    image = load_image(image_file)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    st.success(f"Loaded {len(images_data)} images and {len(annotations_data)} annotation files.")
+    # Step 3: Annotation visualization
+    annotations = load_annotations(annotation_file)
+    class_names = ['class1', 'class2', 'class3']  # Replace with your actual class names
+    annotated_image = draw_annotations(image.copy(), annotations, class_names)
+    st.image(annotated_image, caption="Annotated Image", use_column_width=True)
 
-# Let user select image from uploaded data
-if images_data:
-    image_names = list(images_data.keys())
-    selected_image_name = st.selectbox("Select an image to review", image_names)
+    # Step 4: Verification interface
+    st.write("Annotations:")
+    for idx, ann in enumerate(annotations):
+        class_id, x_center, y_center, width, height = ann
+        st.write(f"Object {idx + 1}: Class {class_names[int(class_id)]}, Center: ({x_center}, {y_center}), Size: ({width}, {height})")
 
-    if selected_image_name:
-        image = images_data[selected_image_name]
-        img_width, img_height = image.size
-
-        # Load annotations for this image
-        ann_df = annotations_data.get(selected_image_name, pd.DataFrame(
-            columns=['class_id', 'x_center', 'y_center', 'width', 'height', 'review']
-        ))
-
-        # Function to draw bounding boxes
-        def draw_bboxes(img, df):
-            img_draw = img.copy()
-            draw = ImageDraw.Draw(img_draw)
-            for _, row in df.iterrows():
-                xmin = int((row['x_center'] - row['width'] / 2) * img_width)
-                xmax = int((row['x_center'] + row['width'] / 2) * img_width)
-                ymin = int((row['y_center'] - row['height'] / 2) * img_height)
-                ymax = int((row['y_center'] + row['height'] / 2) * img_height)
-                color = 'blue'
-                if row['review'] == 'correct':
-                    color = 'green'
-                elif row['review'] == 'incorrect':
-                    color = 'red'
-                draw.rectangle([xmin, ymin, xmax, ymax], outline=color, width=2)
-            return img_draw
-
-        # Display annotated image
-        annotated_img = draw_bboxes(image, ann_df)
-        st.image(annotated_img, caption=selected_image_name)
-
-        st.markdown("### Annotations Review")
-        # For each annotation, provide check buttons to mark correct/incorrect
-        for idx, row in ann_df.iterrows():
-            st.write(f"Annotation {idx} - Class: {row['class_id']}")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button(f"Mark Correct", key=f"correct_{selected_image_name}_{idx}"):
-                    ann_df.at[idx,
+    if st.button("Verify Annotations"):
+        st.success("Annotations verified!")
+    if st.button("Flag for Review"):
+        st.warning("Image flagged for review.")
