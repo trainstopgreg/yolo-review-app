@@ -9,6 +9,7 @@ import yaml  # Import the YAML library
 IMAGE_SIZE = 390  # Size to resize images for display
 NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset (can be read from yaml)
 BUTTON_WIDTH = 75  # Set button width in pixels
+CENTER_COL_WIDTH = 240  # Set center column width in pixels
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
@@ -148,7 +149,7 @@ def main():
 
 
     # --- NAVIGATION ---
-    col1, col2, col3 = st.columns([BUTTON_WIDTH, 1, BUTTON_WIDTH])  # Use fixed column widths for buttons, remaining space to text
+    col1, col2, col3 = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])  # Fixed column widths
     current_image_index = st.session_state.current_image_index + 1  # 1-indexed
     with col1:
         if st.button("◀️ Prev", key="prev_image"):
@@ -172,7 +173,7 @@ def main():
     annotations = load_annotation(entry, num_classes=NUM_CLASSES)
 
     # --- ANNOTATION NAVIGATION ---
-    col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, 1, BUTTON_WIDTH])  #Fixed column widths
+    col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])  # Fixed column widths
     ann_idx = st.session_state.current_annotation_idx
     annotation = annotations[ann_idx]
     class_id = annotation[0]  # Get the class ID
