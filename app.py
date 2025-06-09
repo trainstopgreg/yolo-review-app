@@ -184,7 +184,10 @@ def main():
         st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>{class_name}</h3>", unsafe_allow_html=True) # Center Alignment
     with col_next:
         if st.button("Next Annotation"):
-            st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
+            if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1: #Last annotation and not last image
+                st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
+            else:
+                st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
 
 
     # --- DISPLAY ANNOTATION CROP ---
