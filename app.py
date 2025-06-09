@@ -145,6 +145,7 @@ def get_annotation_crop(image, annotation):
     return display_img
 
 # --- MAIN STREAMLIT APP ---
+# --- MAIN STREAMLIT APP ---
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
