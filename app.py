@@ -140,7 +140,7 @@ def main():
         if st.button("◀️ Prev", key="prev_image"):  # Unique key for Prev Image
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</p>", unsafe_allow_html=True)
     with col3:
         if st.button("Next ▶️", key="next_image"):  # Unique key for Next Image
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
