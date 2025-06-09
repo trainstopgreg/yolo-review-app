@@ -3,22 +3,36 @@ import io
 from data_loader import load_image, load_annotation, Dataset  # Corrected import
 from PIL import Image
 import os
+import yaml  # Import the YAML library
 
 # --- CONFIGURATION ---
 IMAGE_SIZE = 390  # Size to resize images for display
-NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset
-
-# Class names mapping (replace with your actual class names)
-CLASS_NAMES = {
-    0: "ball",
-    1: "player",
-    2: "referee",
-    # Add more classes as needed
-}
+NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset (can be read from yaml)
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
 LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train/labels")
+DATA_YAML_PATH = os.path.join("dataset", "data.yaml")  # Path to your data.yaml file
+
+# Load class names from data.yaml
+try:
+    with open(DATA_YAML_PATH, 'r') as f:
+        data = yaml.safe_load(f)
+        CLASS_NAMES = data['names']  # Assuming class names are under the 'names' key
+        NUM_CLASSES = len(CLASS_NAMES)  # Get the number of classes
+except FileNotFoundError:
+    st.error(f"Error: data.yaml not found at {DATA_YAML_PATH}.  Please make sure the file exists.")
+    st.stop()
+except KeyError:
+    st.error(f"Error: 'names' key not found in {DATA_YAML_PATH}.  Please make sure the file has a 'names' key with a list of class names.")
+    st.stop()
+except yaml.YAMLError as e:
+    st.error(f"Error: Could not parse data.yaml. Please check the YAML syntax. Error details: {e}")
+    st.stop()
+except Exception as e:
+    st.error(f"An unexpected error occurred while loading class names from data.yaml: {e}")
+    st.stop()
+
 
 # --- DATA LOADING ---
 try:
@@ -148,7 +162,7 @@ def main():
     ann_idx = st.session_state.current_annotation_idx
     annotation = annotations[ann_idx]
     class_id = annotation[0]  # Get the class ID
-    class_name = CLASS_NAMES.get(class_id, "Unknown")  # Look up the class name, default to "Unknown"
+    class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
 
     with col_prev:
         if st.button("Previous Annotation"):
@@ -203,3 +217,4 @@ def main():
 # --- RUN MAIN APP ---
 if __name__ == "__main__":
     main()
+
