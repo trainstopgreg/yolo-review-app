@@ -1,54 +1,68 @@
 import streamlit as st
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-import os
 from PIL import Image
+import json
 
-def load_image(image_file):
-    img = Image.open(image_file)
-    return np.array(img)
+# Assuming you have functions to load images and annotations
+from data_loader import load_image, load_annotations, total_images
 
-def load_annotations(annotation_file):
-    with open(annotation_file, 'r') as f:
-        lines = f.readlines()
-    return [line.strip().split() for line in lines]
-
-def draw_annotations(image, annotations, class_names):
-    img_height, img_width = image.shape[:2]
+def draw_bounding_boxes(image, annotations):
+    # Function to draw bounding boxes on the image
     for ann in annotations:
-        class_id, x_center, y_center, width, height = map(float, ann)
-        x_center, y_center, width, height = x_center * img_width, y_center * img_height, width * img_width, height * img_height
-        x1, y1 = int(x_center - width / 2), int(y_center - height / 2)
-        x2, y2 = int(x_center + width / 2), int(y_center + height / 2)
-        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.putText(image, class_names[int(class_id)], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+        # Convert YOLO format to pixel coordinates
+        # Draw rectangle on image
     return image
 
-st.title("YOLO Dataset Annotation Reviewer")
+def main():
+    st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
-# Step 1: File upload
-image_file = st.file_uploader("Upload Image", type=['png', 'jpg', 'jpeg'])
-annotation_file = st.file_uploader("Upload Annotation File", type=['txt'])
+    st.title("YOLO Annotation Review")
 
-if image_file is not None and annotation_file is not None:
-    # Step 2: Image display
-    image = load_image(image_file)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+    # Session state to keep track of current image and flagged items
+    if 'current_image' not in st.session_state:
+        st.session_state.current_image = 0
+        st.session_state.flagged_items = {}
 
-    # Step 3: Annotation visualization
-    annotations = load_annotations(annotation_file)
-    class_names = ['class1', 'class2', 'class3']  # Replace with your actual class names
-    annotated_image = draw_annotations(image.copy(), annotations, class_names)
-    st.image(annotated_image, caption="Annotated Image", use_column_width=True)
+    # Navigation
+    col1, col2, col3 = st.columns([1,2,1])
+    with col1:
+        if st.button("◀️ Previous"):
+            st.session_state.current_image = max(0, st.session_state.current_image - 1)
+    with col2:
+        st.text(f"Image {st.session_state.current_image + 1} / {total_images}")
+    with col3:
+        if st.button("Next ▶️"):
+            st.session_state.current_image = min(total_images - 1, st.session_state.current_image + 1)
 
-    # Step 4: Verification interface
-    st.write("Annotations:")
-    for idx, ann in enumerate(annotations):
-        class_id, x_center, y_center, width, height = ann
-        st.write(f"Object {idx + 1}: Class {class_names[int(class_id)]}, Center: ({x_center}, {y_center}), Size: ({width}, {height})")
+    # Load and display image with annotations
+    image = load_image(st.session_state.current_image)
+    annotations = load_annotations(st.session_state.current_image)
+    image_with_boxes = draw_bounding_boxes(image, annotations)
+    
+    st.image(image_with_boxes, use_column_width=True)
 
-    if st.button("Verify Annotations"):
-        st.success("Annotations verified!")
-    if st.button("Flag for Review"):
-        st.warning("Image flagged for review.")
+    # Flag entire image
+    if st.button("🚩 Flag Entire Image"):
+        st.session_state.flagged_items[st.session_state.current_image] = "entire_image"
+
+    # Display and flag individual annotations
+    with st.expander("View Annotations"):
+        for idx, ann in enumerate(annotations):
+            col1, col2 = st.columns([3,1])
+            with col1:
+                st.text(f"Class: {ann['class']}, Coords: {ann['bbox']}")
+            with col2:
+                if st.checkbox("Flag", key=f"flag_{idx}"):
+                    if st.session_state.current_image not in st.session_state.flagged_items:
+                        st.session_state.flagged_items[st.session_state.current_image] = []
+                    st.session_state.flagged_items[st.session_state.current_image].append(idx)
+
+    # Export flagged items
+    if st.button("Export Flagged Items"):
+        with open("flagged_items.json", "w") as f:
+            json.dump(st.session_state.flagged_items, f)
+        st.success("Flagged items exported successfully!")
+
+if __name__ == "__main__":
+    main()
