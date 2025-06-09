@@ -107,6 +107,7 @@ def main():
                     st.write(f"Image {img_idx + 1} has the following annotations flagged: {', '.join(map(str, flags))}")
         else:
             st.write("No items have been flagged yet.")
+    pass
 
 if __name__ == "__main__":
     main()
