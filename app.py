@@ -2,18 +2,25 @@ import streamlit as st
 import io
 from data_loader import get_dataset, load_image, load_annotation, Dataset
 from PIL import Image
+import os
 
 # --- CONFIGURATION ---
 IMAGE_SIZE = 390  # Size to resize images for display
 NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset
-IMAGES_DIR = "dataset/train/images"  # Replace with your image directory
-LABELS_DIR = "dataset/train/labels"  # Replace with your labels directory
+
+# Use environment variables for directory paths, with defaults
+IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
+LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train/labels")
 
 # --- DATA LOADING ---
-# Initialize Dataset object
-dataset_obj = Dataset(IMAGES_DIR, LABELS_DIR)
-dataset = dataset_obj.get_dataset()
-total_imgs = dataset_obj.total_images()
+try:
+    dataset_obj = Dataset(IMAGES_DIR, LABELS_DIR)
+    dataset = dataset_obj.get_dataset()
+    total_imgs = dataset_obj.total_images()
+except Exception as e:
+    st.error(f"Error loading dataset: {e}.  Check IMAGES_DIR and LABELS_DIR.")
+    st.stop()  # Stop the app if dataset loading fails
+
 
 # --- SESSION STATE INITIALIZATION ---
 if 'current_image_index' not in st.session_state:
@@ -26,7 +33,7 @@ if 'last_image_index' not in st.session_state:
     st.session_state.last_image_index = -1
 
 
-# --- HELPER FUNCTIONS ---
+# --- HELPER FUNCTIONS --- (same as before) ...
 def resize_with_padding(image, target_size=IMAGE_SIZE):
     """
     Resize an image to fit within (target_size x target_size)
@@ -86,7 +93,6 @@ def get_annotation_crop(image, annotation):
     # Resize annotation crop with padding to maintain aspect ratio
     display_img = resize_with_padding(annotation_img, target_size=IMAGE_SIZE)
     return display_img
-
 
 # --- MAIN STREAMLIT APP ---
 def main():
@@ -179,8 +185,6 @@ def main():
         else:
             st.write("No items have been flagged yet.")
 
-
 # --- RUN MAIN APP ---
 if __name__ == "__main__":
     main()
-
