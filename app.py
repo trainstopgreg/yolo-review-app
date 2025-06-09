@@ -152,9 +152,15 @@ def get_annotation_crop(image, annotation):
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
-    # --- Inject CSS to control button size, text alignment, and vertical alignment ---
-    st.markdown(f"""
+    # --- Inject CSS to control image stretching ---
+    st.markdown("""
         <style>
+        img {
+            max-width: 100%; /* Ensure images don't exceed their container */
+            height: auto;    /* Maintain aspect ratio */
+            width: auto !important;  /*Prevent stretching*/
+        }
+
         .nav-container {{
             width: {TOTAL_WIDTH}px !important;
             display: flex;
