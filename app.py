@@ -137,7 +137,7 @@ def main():
     col1, col2, col3 = st.columns([1, 1, 1]) # Three columns for image navigation
     current_image_index = st.session_state.current_image_index + 1  # 1-indexed
     with col1:
-        if st.button("◀️ Previous Image"):
+        if st.button("◀️ Prev Image"):
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
         st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
@@ -178,12 +178,12 @@ def main():
     class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
 
     with col_prev:
-        if st.button("Previous Annotation"):
+        if st.button("◀️ Prev"):  # Changed text to "Prev"
             st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
     with col_class:
         st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>{class_name}</h3>", unsafe_allow_html=True) # Center Alignment
     with col_next:
-        if st.button("Next Annotation"):
+        if st.button("Next ▶️"):  # Changed text to "Next"
             if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1: #Last annotation and not last image
                 st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
             else:
