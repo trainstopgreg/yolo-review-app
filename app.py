@@ -10,11 +10,9 @@ NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset
 
 # Class names mapping (replace with your actual class names)
 CLASS_NAMES = {
-    0: "person",
-    1: "car",
-    2: "bicycle",
-    3: "dog",
-    4: "cat",
+    0: "ball",
+    1: "player",
+    2: "referee",
     # Add more classes as needed
 }
 
