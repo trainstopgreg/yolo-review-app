@@ -14,7 +14,7 @@ ROW_HEIGHT = 40 #pixels - adjust this!
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
-LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train", "labels")
+LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train/labels")
 DATA_YAML_PATH = os.path.join("dataset", "data.yaml")  # Path to your data.yaml file
 
 # Load class names from data.yaml
