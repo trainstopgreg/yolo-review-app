@@ -116,9 +116,22 @@ def get_annotation_crop(image, annotation):
     display_img = resize_with_padding(annotation_img, target_size=IMAGE_SIZE)
     return display_img
 
+
 # --- MAIN STREAMLIT APP ---
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
+
+    # --- Inject CSS to match button font ---
+    st.markdown("""
+        <style>
+        .streamlit-button {
+            font-family: "Source Sans Pro", sans-serif; /* Streamlit's default font */
+            font-size: 16px; /* Adjust as needed */
+            font-weight: 400;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 
     # --- NAVIGATION ---
     col1, col2, col3 = st.columns([1, 1, 1]) # Three columns for image navigation
@@ -127,7 +140,7 @@ def main():
         if st.button("◀️ Previous Image"):
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        st.markdown(f"<h3 style='text-align: center;'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
     with col3:
         if st.button("Next Image ▶️"):
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
@@ -168,7 +181,7 @@ def main():
         if st.button("Previous Annotation"):
             st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
     with col_class:
-        st.markdown(f"<h3 style='text-align: center;'>{class_name}</h3>", unsafe_allow_html=True) # Center Alignment
+        st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>{class_name}</h3>", unsafe_allow_html=True) # Center Alignment
     with col_next:
         if st.button("Next Annotation"):
             st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
@@ -217,4 +230,3 @@ def main():
 # --- RUN MAIN APP ---
 if __name__ == "__main__":
     main()
-
