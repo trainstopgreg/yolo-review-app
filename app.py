@@ -9,7 +9,7 @@ import yaml  # Import the YAML library
 IMAGE_SIZE = 390  # Size to resize images for display
 NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset (can be read from yaml)
 BUTTON_WIDTH = 75  # Set button width in pixels
-CENTER_COL_WIDTH = 240  # Set center column width in pixels
+CENTER_COL_WIDTH = 200  # Set center column width in pixels
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
