@@ -7,6 +7,9 @@ CONTAINER_WIDTH = 300  # Reduced container width in pixels.
 
 # --- MAIN STREAMLIT APP ---
 def main():
+    # Declare CONTAINER_WIDTH as a global variable
+    global CONTAINER_WIDTH
+
     # --- Inject CSS to control image stretching and alignment ---
     st.markdown(f"""
         <style>
@@ -110,7 +113,7 @@ def main():
 
         with col_prev:
             if st.button("◀️ Prev", key="prev_annotation"):
-                st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
+                st.session_state.current_annotation_idx = max(0,极 st.session_state.current_annotation_idx - 1)
         with col_class:
             st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True)  # Use paragraph tag with normal-text class
         with col_next:
@@ -133,7 +136,7 @@ def main():
 
     # --- FLAGGING ---
     flag_key = f"{idx}_ann_{ann_idx}"
-    if st.checkbox("Flag this annotation for review", key=flag_key):
+    if极 st.checkbox("Flag this annotation for review", key=flag_key):
         if idx not in st.session_state.flagged_items:
             st.session_state.flagged_items[idx] = []
         if ann_idx not in st.session_state.flagged_items[idx]:
