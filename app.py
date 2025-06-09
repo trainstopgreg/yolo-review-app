@@ -11,7 +11,7 @@ BUTTON_WIDTH = 80  # Set button width in pixels
 CENTER_COL_WIDTH = 220  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
-CONTAINER_WIDTH = 380  # container.
+CONTAINER_WIDTH = 380 #container.
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", os.path.join("dataset", "train", "images"))
@@ -162,7 +162,6 @@ def main():
             display: flex;
             flex-direction: column;
             align-items: center;
-
         }}
         img {{
             max-width: 100%; /* Ensure images don't exceed their container */
@@ -174,8 +173,9 @@ def main():
             width: 100% !important; /* Takes 100% of the container */
             display: flex;
             flex-direction: row;
-            justify-content: center; /*Updated Here*/
+            justify-content: space-between;
             align-items: center;
+             justify-content: space-between; /* Space out items */
         }}
 
         .streamlit-button {{
@@ -184,9 +184,10 @@ def main():
             font-weight: 400;
             width: {BUTTON_WIDTH}px !important;
             height: {ROW_HEIGHT}px !important;
-            display: flex; /* Use flexbox for vertical alignment */
-            justify-content: center; /*Center horizontally*/
-            align-items: center; /* Center text vertically */
+            /*display: flex; /* Use flexbox for vertical alignment */
+           /*justify-content: center; /*Center horizontally*/
+            /*align-items: center; /* Center text vertically */ */
+             text-align:center;
         }}
 
         .normal-text {{
@@ -196,27 +197,60 @@ def main():
             text-align: center;
             width: {CENTER_COL_WIDTH}px !important;
             height: {ROW_HEIGHT}px !important; /* Consistent height for text */
-            display: flex; /* Use flexbox for vertical alignment */
-            justify-content: center; /*Center horizontally*/
-            align-items: center; /* Center text vertically */
+             /*display: flex; /* Use flexbox for vertical alignment */
+            /*justify-content: center; /*Center horizontally*/
+            /*align-items: center; /* Center text vertically */ */
         }}
+         /* Fix button display*/
+         [data-testid="stHorizontalBlock"] > div:nth-child(1) {
+            width: {BUTTON_WIDTH}px;
+        }
+
+        [data-testid="stHorizontalBlock"] > div:nth-child(3) {
+            width: {BUTTON_WIDTH}px;
+        }
+
+        [data-testid="stHorizontalBlock"] > div:nth-child(2) {
+            width: {CENTER_COL_WIDTH}px;
+        }
+
         </style>
     """, unsafe_allow_html=True)
 
     # --- NAVIGATION ---
-    current_image_index = st.session_state.current_image_index + 1  # 1-indexed
-    st.markdown(f"""<div class='container'>
-            <div class='nav-container'>
-             <div class='streamlit-button'>
-            <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
-             </div>
-             <div class='normal-text'>
-                  <p>Image {current_image_index}/{total_imgs}</p>
-                 </div>
-              <div class='streamlit-button'>
-            <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
-                  </div>
-             </div>""", unsafe_allow_html=True)
+    with st.container():
+        col1, col2, col3 = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])
+        current_image_index = st.session_state.current_image_index + 1
+        with col1:
+            if st.button("◀️ Prev", key="prev_image"):
+                st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
+        with col2:
+            st.markdown(f"<p class='normal-text'>Image {current_image_index}/{total_imgs}</p>", unsafe_allow_html=True)
+        with col3:
+            if st.button("Next ▶️", key="next_image"):
+                st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
+
+        if annotations:
+            ann_idx = st.session_state.current_annotation_idx
+            annotation = annotations[ann_idx]
+            class_id = annotation[0]
+            class_name = CLASS_NAMES[class_id]
+        else:
+            class_name = "No Annotations"
+
+        col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])
+        with col_prev:
+            if st.button("◀️ Prev", key="prev_annotation"):
+                st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
+        with col_class:
+            st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True)
+        with col_next:
+            if annotations:
+                if st.button("Next ▶️", key="next_annotation"):
+                    if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1:
+                        st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
+                    else:
+                        st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
 
     # --- LOAD IMAGE & ANNOTATIONS ---
     idx = st.session_state.current_image_index
@@ -226,45 +260,9 @@ def main():
 
     if original_image is None:
         st.error(f"Failed to load image: {entry['image_path']}")
-        return  # Skip to the next image
+        return # Skip to the next image
 
     annotations = load_annotation(entry, num_classes=NUM_CLASSES)
-
-    # --- ANNOTATION INDEX RESET ---
-    if st.session_state.last_image_index != idx:
-        st.session_state.current_annotation_idx = 0
-        st.session_state.last_image_index = idx
-
-    if not annotations:
-        st.warning("No annotations for this image.")
-        # Display the full image even without annotations
-        st.image(original_image, caption="Original Image", use_container_width=True)
-        return
-
-    max_ann_idx = len(annotations) - 1
-
-    # Initializing to avoid unassigned before reference
-    class_name = "No Annotations"
-    ann_idx = 0
-
-    if annotations:
-         ann_idx = st.session_state.current_annotation_idx
-         annotation = annotations[ann_idx]
-         class_id = annotation[0]  # Get the class ID
-         class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
-
-    # Adding to main container
-    st.markdown(f"""<div class='container'><div class='nav-container'>
-                    <div class='streamlit-button'>
-                    <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
-                    </div>
-                    <div class='normal-text'>
-                    <p >{class_name}</p>
-                    </div>
-                    <div class='streamlit-button'>
-                     <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
-                    </div>
-                    </div>""", unsafe_allow_html=True)
 
     # --- DISPLAY ANNOTATION CROP ---
     display_img = get_annotation_crop(original_image, annotation)
@@ -308,3 +306,4 @@ def main():
 # --- RUN MAIN APP ---
 if __name__ == "__main__":
     main()
+
