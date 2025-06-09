@@ -107,7 +107,7 @@ def main():
     annotation = annotations[ann_idx]
 
     # Get and display annotation crop with padding
-    display_img = get_annotation_crop(original_image, annotation
+    display_img = get_annotation_crop(original_image, annotation)
 
     # Display the cropped annotation image with aspect ratio maintained and black bars
     st.image(display_img, caption=f"Annotation {ann_idx + 1}", use_container_width=True)
