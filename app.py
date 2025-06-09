@@ -151,7 +151,8 @@ def main():
         if st.button("◀️ Prev", key="prev_image"):
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
+        # Use paragraph tag with normal-text class
+        st.markdown(f"<p class='normal-text'>Image {current_image_index}/{total_imgs}</p>", unsafe_allow_html=True)
     with col3:
         if st.button("Next ▶️", key="next_image"):
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
@@ -167,6 +168,19 @@ def main():
         return  # Skip to the next image
 
     annotations = load_annotation(entry, num_classes=NUM_CLASSES)
+
+    # --- ANNOTATION INDEX RESET ---
+    if st.session_state.last_image_index != idx:
+        st.session_state.current_annotation_idx = 0
+        st.session_state.last_image_index = idx
+
+    if not annotations:
+        st.warning("No annotations for this image.")
+        # Display the full image even without annotations
+        st.image(original_image, caption="Original Image", use_container_width=True)
+        return
+
+    max_ann_idx = len(annotations) - 1
 
     # --- ANNOTATION NAVIGATION ---
     col_prev, col_class, col_next = st.columns([1, 1, 1])  # Three columns
