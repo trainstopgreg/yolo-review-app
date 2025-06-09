@@ -1,7 +1,7 @@
 import streamlit as st
-import numpy as np
 import io
 from data_loader import get_dataset, load_image, load_annotation
+from PIL import Image
 
 # Load dataset once
 dataset = get_dataset()
@@ -17,26 +17,26 @@ if 'current_annotation_idx' not in st.session_state:
 if 'last_image_index' not in st.session_state:
     st.session_state.last_image_index = -1
 
-def draw_single_annotation_on_resized_image(image, annotation):
-    from PIL import ImageDraw
-    # Resize image
-    resized_image = image.resize((390, 390))
-    draw = ImageDraw.Draw(resized_image)
+def get_annotation_crop(image, annotation):
+    # Calculate bbox in resized image (390x390)
     class_id, x_center, y_center, box_width, box_height = annotation
-    # Scale coords to resized image
     x_center, y_center = x_center * 390, y_center * 390
     box_width, box_height = box_width * 390, box_height * 390
     x1 = int(x_center - box_width / 2)
     y1 = int(y_center - box_height / 2)
     x2 = int(x_center + box_width / 2)
     y2 = int(y_center + box_height / 2)
-    draw.rectangle([x1, y1, x2, y2], outline="red", width=3)
-    draw.text((x1, y1 - 10), f"Class: {class_id}", fill="red")
-    return resized_image
+    # Resize original image to 390x390
+    resized_image = image.resize((390, 390))
+    # Crop the bounding box area
+    crop_box = (x1, y1, x2, y2)
+    annotation_img = resized_image.crop(crop_box)
+    return annotation_img
 
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
-    # Navigation for images
+
+    # Navigation to move through images
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
         if st.button("◀️ Previous", use_container_width=True):
@@ -50,23 +50,23 @@ def main():
     idx = st.session_state.current_image_index
     entry = dataset[idx]
 
-    # Load image and annotations
-    image = load_image(entry)
+    # Load original image
+    original_image = load_image(entry)
+    # Load annotations
     annotations = load_annotation(entry)
 
-    # Handle annotation index reset when switching images
+    # Reset annotation index if changing images
     if st.session_state.last_image_index != idx:
         st.session_state.current_annotation_idx = 0
         st.session_state.last_image_index = idx
 
-    # If no annotations, inform and exit
     if not annotations:
         st.write("No annotations for this image.")
         return
 
     max_ann_idx = len(annotations) - 1
 
-    # Navigation for annotations
+    # Annotation navigation
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("Previous Annotation"):
@@ -78,13 +78,13 @@ def main():
     ann_idx = st.session_state.current_annotation_idx
     annotation = annotations[ann_idx]
 
-    # Draw only current annotation on resized image
-    img_with_box = draw_single_annotation_on_resized_image(image, annotation)
+    # Get crop of annotation
+    annotation_img = get_annotation_crop(original_image, annotation)
 
-    # Show the image
-    st.image(img_with_box, use_container_width=True)
+    # Display the cropped annotation image
+    st.image(annotation_img, caption=f"Annotation {ann_idx + 1}", use_column_width=True)
 
-    # Flag for current annotation
+    # Flagging
     flag_key = f"{idx}_ann_{ann_idx}"
     if st.checkbox("Flag this annotation for review", key=flag_key):
         if idx not in st.session_state.flagged_items:
