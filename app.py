@@ -10,10 +10,11 @@ IMAGE_SIZE = 390  # Size to resize images for display
 NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset (can be read from yaml)
 BUTTON_WIDTH = 75  # Set button width in pixels
 CENTER_COL_WIDTH = 240  # Set center column width in pixels
+ROW_HEIGHT = 40 #pixels - adjust this!
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
-LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train/labels")
+LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train", "labels")
 DATA_YAML_PATH = os.path.join("dataset", "data.yaml")  # Path to your data.yaml file
 
 # Load class names from data.yaml
@@ -26,7 +27,7 @@ except FileNotFoundError:
     st.error(f"Error: data.yaml not found at {DATA_YAML_PATH}.  Please make sure the file exists.")
     st.stop()
 except KeyError:
-    st.error(f"Error: 'names' key not found in {DATA_YAML_PATH}.  Please make sure the file has a 'names' key with a list of class names.")
+    st.error(f"Error: 'names' key not found in {DATA_YAML_PATH}.  Please make sure the file has a list of class names.")
     st.stop()
 except yaml.YAMLError as e:
     st.error(f"Error: Could not parse data.yaml. Please check the YAML syntax. Error details: {e}")
@@ -128,25 +129,32 @@ def get_annotation_crop(image, annotation):
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
-    # --- Inject CSS to match button font and size, and set button width ---
+    # --- Inject CSS to control button size, text alignment, and vertical alignment ---
     st.markdown(f"""
         <style>
         .streamlit-button {{
             font-family: "Source Sans Pro", sans-serif;
             font-size: 16px;
             font-weight: 400;
-            width: {BUTTON_WIDTH}px !important; /* Set button width */
-            padding: 3px;
+            width: {BUTTON_WIDTH}px !important;
+            height: {ROW_HEIGHT}px !important; /* Consistent height for buttons */
+            display: flex; /* Use flexbox for vertical alignment */
+            justify-content: center; /*Center horizontally*/
+            align-items: center; /* Center text vertically */
+
         }}
         .normal-text {{
             font-family: "Source Sans Pro", sans-serif;
             font-size: 16px;
             font-weight: 400;
             text-align: center;
+            height: {ROW_HEIGHT}px !important; /* Consistent height for text */
+            display: flex; /* Use flexbox for vertical alignment */
+            justify-content: center; /*Center horizontally*/
+            align-items: center; /* Center text vertically */
         }}
         </style>
     """, unsafe_allow_html=True)
-
 
     # --- NAVIGATION ---
     col1, col2, col3 = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])  # Fixed column widths
@@ -159,7 +167,6 @@ def main():
     with col3:
         if st.button("Next ▶️", key="next_image"):
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
-
 
     idx = st.session_state.current_image_index
     entry = dataset[idx]
