@@ -31,7 +31,7 @@ except FileNotFoundError:
     st.error(f"Error: data.yaml not found at {DATA_YAML_PATH}. Please make sure the file exists.")
     st.stop()
 except KeyError as e:
-    st.error(f"Error: Key '{e}' not found in {DATA_YAML_PATH. Please make sure the file has both 'names' and 'nc' keys.")
+    st.error(f"Error: Key '{e}' not found in {DATA_YAML_PATH}. Please make sure the file has both 'names' and 'nc' keys.")
     st.stop()
 except yaml.YAMLError as e:
     st.error(f"Error: Could not parse data.yaml. Please check the YAML syntax. Error details: {e}")
