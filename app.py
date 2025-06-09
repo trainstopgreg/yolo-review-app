@@ -8,6 +8,7 @@ import yaml  # Import the YAML library
 # --- CONFIGURATION ---
 IMAGE_SIZE = 390  # Size to resize images for display
 NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset (can be read from yaml)
+BUTTON_WIDTH = 75  # Set button width in pixels
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
@@ -126,32 +127,33 @@ def get_annotation_crop(image, annotation):
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
-    # --- Inject CSS to match button font ---
-    st.markdown("""
+    # --- Inject CSS to match button font and size, and set button width ---
+    st.markdown(f"""
         <style>
-        .streamlit-button {
-            font-family: "Source Sans Pro", sans-serif; /* Streamlit's default font */
-            font-size: 16px; /* Adjust as needed */
+        .streamlit-button {{
+            font-family: "Source Sans Pro", sans-serif;
+            font-size: 16px;
             font-weight: 400;
-        }
-        .normal-text {
-            font-family: "Source Sans Pro", sans-serif; /* Streamlit's default font */
-            font-size: 16px; /* Adjust as needed */
+            width: {BUTTON_WIDTH}px !important; /* Set button width */
+            padding: 3px;
+        }}
+        .normal-text {{
+            font-family: "Source Sans Pro", sans-serif;
+            font-size: 16px;
             font-weight: 400;
             text-align: center;
-        }
+        }}
         </style>
     """, unsafe_allow_html=True)
 
 
     # --- NAVIGATION ---
-    col1, col2, col3 = st.columns([1, 1, 1]) # Three columns for image navigation
+    col1, col2, col3 = st.columns([BUTTON_WIDTH, 1, BUTTON_WIDTH])  # Use fixed column widths for buttons, remaining space to text
     current_image_index = st.session_state.current_image_index + 1  # 1-indexed
     with col1:
         if st.button("◀️ Prev", key="prev_image"):
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        # Use paragraph tag with normal-text class
         st.markdown(f"<p class='normal-text'>Image {current_image_index}/{total_imgs}</p>", unsafe_allow_html=True)
     with col3:
         if st.button("Next ▶️", key="next_image"):
@@ -169,21 +171,8 @@ def main():
 
     annotations = load_annotation(entry, num_classes=NUM_CLASSES)
 
-    # --- ANNOTATION INDEX RESET ---
-    if st.session_state.last_image_index != idx:
-        st.session_state.current_annotation_idx = 0
-        st.session_state.last_image_index = idx
-
-    if not annotations:
-        st.warning("No annotations for this image.")
-        # Display the full image even without annotations
-        st.image(original_image, caption="Original Image", use_container_width=True)
-        return
-
-    max_ann_idx = len(annotations) - 1
-
     # --- ANNOTATION NAVIGATION ---
-    col_prev, col_class, col_next = st.columns([1, 1, 1])  # Three columns
+    col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, 1, BUTTON_WIDTH])  #Fixed column widths
     ann_idx = st.session_state.current_annotation_idx
     annotation = annotations[ann_idx]
     class_id = annotation[0]  # Get the class ID
