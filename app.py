@@ -202,8 +202,10 @@ def main():
         }}
         </style>
     """, unsafe_allow_html=True)
-
+    
     # --- NAVIGATION ---
+    current_image_index = st.session_state.current_image_index + 1  # 1-indexed
+    image_counter_text = f"Image {current_image_index}/{total_imgs}"
 
     st.markdown(f"""<div class='container'>
             <div class='nav-container'>
@@ -211,7 +213,7 @@ def main():
             <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
              </div>
              <div class='normal-text'>
-                  <p>Image {{st.session_state.current_image_index + 1}}/{{total_imgs}}</p>
+                  <p>{image_counter_text}</p>
                  </div>
               <div class='streamlit-button'>
             <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
