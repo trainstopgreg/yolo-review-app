@@ -165,11 +165,12 @@ def main():
             margin: 0 auto;   /*Center the image */
         }}
         .nav-container {{
-            width: {CONTAINER_WIDTH}px !important; /* Takes 100% of the container */
+            width: {CONTAINER_WIDTH}px !important;
             display: flex;
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: nowrap; /* Prevent wrapping of elements */
         }}
 
         .streamlit-button {{
@@ -178,7 +179,8 @@ def main():
             font-weight: 400;
             width: {BUTTON_WIDTH}px !important;
             height: {ROW_HEIGHT}px !important;
-            text-align:center;
+            text-align: center;
+            flex-shrink: 0; /* Prevent buttons from shrinking */
         }}
 
         .normal-text {{
@@ -187,7 +189,8 @@ def main():
             font-weight: 400;
             text-align: center;
             width: {CENTER_COL_WIDTH}px !important;
-            height: {ROW_HEIGHT}px !important; /* Consistent height for text */
+            height: {ROW_HEIGHT}px !important;
+            flex-shrink: 0; /* Prevent text from shrinking */
         }}
         </style>
     """, unsafe_allow_html=True)
