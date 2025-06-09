@@ -248,18 +248,18 @@ def main():
         if annotations:
             ann_idx = st.session_state.current_annotation_idx
             annotation = annotations[ann_idx]
-            class_id = annotation[0]  / Get the class ID
-            class_name = CLASS_NAMES[class_id]  / Look up the class name - use direct indexing
+            class_id = annotation[0]  # Get the class ID
+            class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
 
         with col_prev:
             if st.button("◀️ Prev", key="prev_annotation"):
                 st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
         with col_class:
-            st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True)  / Use paragraph tag with normal-text class
+            st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True)  # Use paragraph tag with normal-text class
         with col_next:
             if st.button("Next ▶️", key="next_annotation"):
                 if annotations:
-                    if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1:  / Last annotation and not last image
+                    if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1:  # Last annotation and not last image
                         st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
                     else:
                         st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
