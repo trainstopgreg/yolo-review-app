@@ -12,7 +12,7 @@ import json
 import io
 
 # Assuming you have functions to load images and annotations
-from data_loader import load_image, load_annotations, total_images
+from data_loader import load_all_images, load_all_annotations, total_images
 
 def draw_bounding_boxes(image, annotations):
     if USE_CV2:
