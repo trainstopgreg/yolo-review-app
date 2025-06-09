@@ -60,27 +60,52 @@ def main():
     image_with_boxes.save(buf, format="PNG")
     st.image(buf.getvalue(), use_column_width=True)
 
-    # Flag entire image
-    if st.button("🚩 Flag Entire Image"):
-        st.session_state.flagged_items[idx] = "entire_image"
-        st.success("Image flagged!")
+    # Initialize annotation index for this image if not present
+    if 'current_annotation_idx' not in st.session_state or st.session_state.current_image_index != getattr(st.session_state, 'last_image_index', -1):
+        st.session_state.current_annotation_idx = 0
+        st.session_state.last_image_index = st.session_state.current_image_index
 
-    # View and flag annotations
-    with st.expander("View Annotations"):
-        for ann_idx, ann in enumerate(annotations):
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.text(f"Class: {ann[0]}, Coords: {ann[1:]}")
-            with col2:
-                key = f"{idx}_ann_{ann_idx}"
-                if st.checkbox("Flag", key=key):
-                    if idx not in st.session_state.flagged_items:
-                        st.session_state.flagged_items[idx] = []
-                    if ann_idx not in st.session_state.flagged_items[idx]:
-                        st.session_state.flagged_items[idx].append(ann_idx)
-                        st.success(f"Annotation {ann_idx} flagged!")
+    # Reset annotation index when switching images
+    st.session_state.last_image_index = st.session_state.current_image_index
 
-    # Show flagged items
+    annotations = load_annotation(entry)
+
+    # If no annotations, skip
+    if not annotations:
+        st.write("No annotations for this image.")
+        return
+
+    # Navigation for annotations
+    if 'current_annotation_idx' not in st.session_state:
+        st.session_state.current_annotation_idx = 0
+
+    max_ann_idx = len(annotations) - 1
+
+    col_prev, col_next = st.columns([1,1])
+    with col_prev:
+        if st.button("Previous Annotation"):
+            st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
+    with col_next:
+        if st.button("Next Annotation"):
+            st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
+
+    ann_idx = st.session_state.current_annotation_idx
+    ann = annotations[ann_idx]
+
+    # Show current annotation details
+    st.write(f"Annotation {ann_idx + 1} of {len(annotations)}")
+    st.write(f"Class: {ann[0]}, Coords: {ann[1:]}")
+
+    # Flag checkbox for the current annotation
+    flag_key = f"{idx}_ann_{ann_idx}"
+    if st.checkbox("Flag this annotation for review", key=flag_key):
+        if idx not in st.session_state.flagged_items:
+            st.session_state.flagged_items[idx] = []
+        if ann_idx not in st.session_state.flagged_items[idx]:
+            st.session_state.flagged_items[idx].append(ann_idx)
+            st.success(f"Annotation {ann_idx + 1} flagged!")
+
+    # Display flagged items info
     with st.expander("Flagged Items"):
         flagged = st.session_state.flagged_items
         if flagged:
@@ -91,6 +116,7 @@ def main():
                     st.write(f"Image {img_idx + 1} has annotations flagged: {', '.join(map(str, flags))}")
         else:
             st.write("No items have been flagged yet.")
+
 
 if __name__ == "__main__":
     main()
