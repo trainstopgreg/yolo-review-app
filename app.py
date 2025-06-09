@@ -11,8 +11,25 @@ except ImportError:
 import json
 import io
 
-# Assuming you have functions to load images and annotations
-from data_loader import load_all_images, load_all_annotations, total_images
+import os
+from PIL import Image
+
+# Paths
+images_dir = os.path.join("dataset", "train", "images")
+labels_dir = os.path.join("dataset", "train", "labels")
+
+# Build dataset list
+image_files = [f for f in os.listdir(images_dir) if f.endswith('.jpg')]
+dataset = []
+
+for img_filename in image_files:
+    base_name = os.path.splitext(img_filename)[0]
+    label_filename = base_name + ".txt"  # adjust if using different formats
+    dataset.append({
+        'image_path': os.path.join(images_dir, img_filename),
+        'label_path': os.path.join(labels_dir, label_filename),
+        'filename': img_filename
+    })
 
 def draw_bounding_boxes(image, annotations):
     if USE_CV2:
@@ -50,55 +67,53 @@ def draw_bounding_boxes(image, annotations):
 
 def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
+    total_imgs = len(dataset)
 
-    # Load all data once
-    images = load_all_images()
-    annotations_list = load_all_annotations()
-    total_imgs = len(images)
-
-    # Initialize session state variables if not already
-    if 'current_image' not in st.session_state:
-        st.session_state.current_image = 0
+    if 'current_image_index' not in st.session_state:
+        st.session_state.current_image_index = 0
     if 'flagged_items' not in st.session_state:
         st.session_state.flagged_items = {}
 
-    # Navigation
+    # Navigation controls
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
         if st.button("◀️ Previous", use_container_width=True):
-            st.session_state.current_image = max(0, st.session_state.current_image - 1)
+            st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        st.text(f"Image {st.session_state.current_image + 1} / {total_imgs}")
+        st.text(f"Image {st.session_state.current_image_index + 1} / {total_imgs}")
     with col3:
         if st.button("Next ▶️", use_container_width=True):
-            st.session_state.current_image = min(total_imgs - 1, st.session_state.current_image + 1)
+            st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
 
-    # Get current image and annotations
-    idx = st.session_state.current_image
-    image = images[idx]
-    annotations = annotations_list[idx]
-    
-    # Draw boxes
+    idx = st.session_state.current_image_index
+    entry = dataset[idx]
+
+    # Load image
+    image = Image.open(entry['image_path'])
+    # Load annotations
+    annotations = load_annotation(entry)
+
+    # Draw bounding boxes
     image_with_boxes = draw_bounding_boxes(image, annotations)
-    
+
     # Display image
     buf = io.BytesIO()
     image_with_boxes.save(buf, format="PNG")
     st.image(buf.getvalue(), use_column_width=True)
 
     # Flag entire image
-    if st.button("🚩 Flag Entire Image", use_container_width=True):
+    if st.button("🚩 Flag Entire Image"):
         st.session_state.flagged_items[idx] = "entire_image"
         st.success("Image flagged!")
 
-    # View annotations
+    # View and flag annotations
     with st.expander("View Annotations"):
         for ann_idx, ann in enumerate(annotations):
             col1, col2 = st.columns([3, 1])
             with col1:
                 st.text(f"Class: {ann[0]}, Coords: {ann[1:]}")
             with col2:
-                if st.checkbox("Flag", key=f"flag_{ann_idx}"):
+                if st.checkbox("Flag", key=f"{idx}_ann_{ann_idx}"):
                     if idx not in st.session_state.flagged_items:
                         st.session_state.flagged_items[idx] = []
                     st.session_state.flagged_items[idx].append(ann_idx)
@@ -111,9 +126,10 @@ def main():
                 if flags == "entire_image":
                     st.write(f"Image {img_idx + 1} flagged.")
                 else:
-                    st.write(f"Image {img_idx + 1} has annotations flagged: {', '.join(map(str, flags))}")
+                    st.write(f"Image {img_idx + 1} annotations flagged: {', '.join(map(str, flags))}")
         else:
             st.write("No items have been flagged yet.")
+
 
 
 if __name__ == "__main__":
