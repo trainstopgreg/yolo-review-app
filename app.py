@@ -82,7 +82,8 @@ def main():
     annotation_img = get_annotation_crop(original_image, annotation)
 
     # Display the cropped annotation image
-    st.image(annotation_img, caption=f"Annotation {ann_idx + 1}", use_column_width=True)
+    # st.image(annotation_img, caption=f"Annotation {ann_idx + 1}", use_column_width=True)
+    st.image(annotation_img, caption=f"Annotation {ann_idx + 1}", use_container_width=True)
 
     # Flagging
     flag_key = f"{idx}_ann_{ann_idx}"
