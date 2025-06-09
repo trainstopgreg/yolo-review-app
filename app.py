@@ -6,9 +6,9 @@ import os
 import yaml  # Import the YAML library
 
 # --- CONFIGURATION ---
-IMAGE_SIZE = 380  # Size to resize images for display
+MAX_ANNOTATION_SIZE = 380  # Maximum size for annotation crops
 BUTTON_WIDTH = 80  # Set button width in pixels
-CENTER_COL_WIDTH = 200  # Set center column width in pixels
+CENTER_COL_WIDTH = 220  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
 
@@ -59,7 +59,7 @@ if 'last_image_index' not in st.session_state:
 
 
 # --- HELPER FUNCTIONS ---
-def resize_with_padding(image, target_size=IMAGE_SIZE):
+def resize_with_padding(image, target_size=MAX_ANNOTATION_SIZE):
     """
     Resize an image to fit within (target_size x target_size)
     maintaining aspect ratio, adding black bars if needed.
@@ -92,14 +92,34 @@ def resize_with_padding(image, target_size=IMAGE_SIZE):
     return new_img
 
 
+def limit_image_size(image, max_size=MAX_ANNOTATION_SIZE):
+    """
+    Resizes an image so that its maximum dimension (width or height) is no larger than max_size
+    while preserving aspect ratio.
+    """
+    original_width, original_height = image.size
+    if max(original_width, original_height) <= max_size:
+        return image  # No resizing needed
+
+    if original_width > original_height:
+        # Wider image
+        new_width = max_size
+        new_height = int(max_size * original_height / original_width)
+    else:
+        # Taller image or square
+        new_height = max_size
+        new_width = int(max_size * original_width / original_height)
+
+    return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
 def get_annotation_crop(image, annotation):
     """
-    Crops an annotation from the original image, resizes it with padding,
-    and returns the resulting image.
+    Crops an annotation from the given image, using the provided coordinates
+    and returns the resulting image
     """
     # Calculate bbox coordinates in the original image
     class_id, x_center, y_center, box_width, box_height = annotation
-    img_width, img_height = image.size  # Get original image dimensions
+    img_width, img_height = image.size #get dimension
 
     x1 = int((x_center - box_width / 2) * img_width)
     y1 = int((y_center - box_height / 2) * img_height)
@@ -118,10 +138,13 @@ def get_annotation_crop(image, annotation):
         annotation_img = image.crop(crop_box)
     except Exception as e:
         st.error(f"Error cropping image: {e}")
-        return None  # Or handle the error as appropriate
+        return None # Or handle the error as appropriate
+
+    # Limit the size of the annotation crop
+    annotation_img = limit_image_size(annotation_img, max_size=MAX_ANNOTATION_SIZE)
 
     # Resize annotation crop with padding to maintain aspect ratio
-    display_img = resize_with_padding(annotation_img, target_size=IMAGE_SIZE)
+    display_img = resize_with_padding(annotation_img, target_size=MAX_ANNOTATION_SIZE)
     return display_img
 
 
@@ -166,7 +189,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # --- NAVIGATION ---
-    col1, col2, col3 = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])  # Fixed column widths
+    col1, col2, col3 = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH]) # Fixed column widths
     current_image_index = st.session_state.current_image_index + 1  # 1-indexed
     with col1:
         if st.button("◀️ Prev", key="prev_image"):
@@ -183,9 +206,10 @@ def main():
 
     # --- LOAD IMAGE & ANNOTATIONS ---
     original_image = load_image(entry)
+
     if original_image is None:
         st.error(f"Failed to load image: {entry['image_path']}")
-        return  # Skip to the next image
+        return # Skip to the next image
 
     annotations = load_annotation(entry, num_classes=NUM_CLASSES)
 
