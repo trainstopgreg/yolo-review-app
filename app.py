@@ -137,12 +137,12 @@ def main():
     col1, col2, col3 = st.columns([1, 1, 1]) # Three columns for image navigation
     current_image_index = st.session_state.current_image_index + 1  # 1-indexed
     with col1:
-        if st.button("◀️ Prev Image"):
+        if st.button("◀️ Prev"):
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
         st.markdown(f"<h3 style='text-align: center;' class='streamlit-button'>Image {current_image_index}/{total_imgs}</h3>", unsafe_allow_html=True)
     with col3:
-        if st.button("Next Image ▶️"):
+        if st.button("Next ▶️"):
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
 
 
