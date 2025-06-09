@@ -7,7 +7,7 @@ import yaml  # Import the YAML library
 
 # --- CONFIGURATION ---
 IMAGE_SIZE = 390  # Size to resize images for display
-NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset (can be read from yaml)
+NUM_CLASSES = 3  # Replace with the actual number of classes in your dataset (can be read from yaml)
 BUTTON_WIDTH = 75  # Set button width in pixels
 CENTER_COL_WIDTH = 240  # Set center column width in pixels
 ROW_HEIGHT = 40 #pixels - adjust this!
