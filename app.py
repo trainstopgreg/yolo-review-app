@@ -8,6 +8,14 @@ import os
 IMAGE_SIZE = 390  # Size to resize images for display
 NUM_CLASSES = 80  # Replace with the actual number of classes in your dataset
 
+# Class names mapping (replace with your actual class names)
+CLASS_NAMES = {
+    0: "ball",
+    1: "player",
+    2: "referee",
+    # Add more classes as needed
+}
+
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", "dataset/train/images")
 LABELS_DIR = os.environ.get("LABELS_DIR", "dataset/train/labels")
@@ -99,15 +107,15 @@ def main():
     st.set_page_config(page_title="YOLO Annotation Review", layout="wide")
 
     # --- NAVIGATION ---
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2 = st.columns([1, 1]) # Adjusted column width
     with col1:
-        if st.button("◀️ Previous", use_container_width=True):
+        if st.button("◀️ Previous Image"): # Clear labels
             st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
     with col2:
-        st.write(f"Image {st.session_state.current_image_index + 1} / {total_imgs}")
-    with col3:
-        if st.button("Next ▶️", use_container_width=True):
+        if st.button("Next Image ▶️"): # Clear labels
             st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
+
+    st.write(f"Image {st.session_state.current_image_index + 1} / {total_imgs}")  # Display Counter
 
     idx = st.session_state.current_image_index
     entry = dataset[idx]
@@ -134,16 +142,21 @@ def main():
     max_ann_idx = len(annotations) - 1
 
     # --- ANNOTATION NAVIGATION ---
-    col_prev, col_next = st.columns([1, 1])
+    col_prev, col_class, col_next = st.columns([1, 1, 1])  # Three columns
+    ann_idx = st.session_state.current_annotation_idx
+    annotation = annotations[ann_idx]
+    class_id = annotation[0]  # Get the class ID
+    class_name = CLASS_NAMES.get(class_id, "Unknown")  # Look up the class name, default to "Unknown"
+
     with col_prev:
         if st.button("Previous Annotation"):
             st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
+    with col_class:
+        st.markdown(f"<h3 style='text-align: center;'>{class_name}</h3>", unsafe_allow_html=True) # Center Alignment
     with col_next:
         if st.button("Next Annotation"):
             st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
 
-    ann_idx = st.session_state.current_annotation_idx
-    annotation = annotations[ann_idx]
 
     # --- DISPLAY ANNOTATION CROP ---
     display_img = get_annotation_crop(original_image, annotation)
