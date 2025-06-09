@@ -1,6 +1,6 @@
 import streamlit as st
 import io
-from data_loader import load_image, load_annotation, Dataset  # Corrected import
+from data_loader import load_image, load_annotation, Dataset  # Ensure data_loader.py exists
 from PIL import Image
 import os
 import yaml  # Import the YAML library
@@ -11,7 +11,7 @@ BUTTON_WIDTH = 80  # Set button width in pixels
 CENTER_COL_WIDTH = 220  # Set center column width in pixels
 ROW_HEIGHT = 40  # pixels - adjust this!
 TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
-CONTAINER_WIDTH = 380 #container.
+CONTAINER_WIDTH = 380  # container.
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", os.path.join("dataset", "train", "images"))
@@ -25,10 +25,10 @@ try:
         CLASS_NAMES = data['names']  # Assuming class names are under the 'names' key
         NUM_CLASSES = data['nc']  # Read the number of classes from the yaml file
 except FileNotFoundError:
-    st.error(f"Error: data.yaml not found at {DATA_YAML_PATH}.  Please make sure the file exists.")
+    st.error(f"Error: data.yaml not found at {DATA_YAML_PATH}. Please make sure the file exists.")
     st.stop()
 except KeyError as e:
-    st.error(f"Error: Key '{e}' not found in {DATA_YAML_PATH}.  Please make sure the file has both 'names' and 'nc' keys.")
+    st.error(f"Error: Key '{e}' not found in {DATA_YAML_PATH}. Please make sure the file has both 'names' and 'nc' keys.")
     st.stop()
 except yaml.YAMLError as e:
     st.error(f"Error: Could not parse data.yaml. Please check the YAML syntax. Error details: {e}")
@@ -37,16 +37,14 @@ except Exception as e:
     st.error(f"An unexpected error occurred while loading class names from data.yaml: {e}")
     st.stop()
 
-
 # --- DATA LOADING ---
 try:
     dataset_obj = Dataset(IMAGES_DIR, LABELS_DIR)
     dataset = dataset_obj.get_dataset()  # Access get_dataset through the object
     total_imgs = dataset_obj.total_images()
 except Exception as e:
-    st.error(f"Error loading dataset: {e}.  Check IMAGES_DIR and LABELS_DIR.")
+    st.error(f"Error loading dataset: {e}. Check IMAGES_DIR and LABELS_DIR.")
     st.stop()  # Stop the app if dataset loading fails
-
 
 # --- SESSION STATE INITIALIZATION ---
 if 'current_image_index' not in st.session_state:
@@ -57,7 +55,6 @@ if 'current_annotation_idx' not in st.session_state:
     st.session_state.current_annotation_idx = 0
 if 'last_image_index' not in st.session_state:
     st.session_state.last_image_index = -1
-
 
 # --- HELPER FUNCTIONS ---
 def resize_with_padding(image, target_size=MAX_ANNOTATION_SIZE):
@@ -92,7 +89,6 @@ def resize_with_padding(image, target_size=MAX_ANNOTATION_SIZE):
     new_img.paste(resized_img, (paste_x, paste_y))
     return new_img
 
-
 def limit_image_size(image, max_size=MAX_ANNOTATION_SIZE):
     """
     Resizes an image so that its maximum dimension (width or height) is no larger than max_size
@@ -120,7 +116,7 @@ def get_annotation_crop(image, annotation):
     """
     # Calculate bbox coordinates in the original image
     class_id, x_center, y_center, box_width, box_height = annotation
-    img_width, img_height = image.size #get dimension
+    img_width, img_height = image.size  # get dimension
 
     x1 = int((x_center - box_width / 2) * img_width)
     y1 = int((y_center - box_height / 2) * img_height)
@@ -139,7 +135,7 @@ def get_annotation_crop(image, annotation):
         annotation_img = image.crop(crop_box)
     except Exception as e:
         st.error(f"Error cropping image: {e}")
-        return None # Or handle the error as appropriate
+        return None  # Or handle the error as appropriate
 
     # Limit the size of the annotation crop
     annotation_img = limit_image_size(annotation_img, max_size=MAX_ANNOTATION_SIZE)
@@ -147,7 +143,6 @@ def get_annotation_crop(image, annotation):
     # Resize annotation crop with padding to maintain aspect ratio
     display_img = resize_with_padding(annotation_img, target_size=MAX_ANNOTATION_SIZE)
     return display_img
-
 
 # --- MAIN STREAMLIT APP ---
 def main():
@@ -162,7 +157,6 @@ def main():
             display: flex;
             flex-direction: column;
             align-items: center;
-
         }}
         img {{
             max-width: 100%; /* Ensure images don't exceed their container */
@@ -185,10 +179,7 @@ def main():
             font-weight: 400;
             width: {BUTTON_WIDTH}px !important;
             height: {ROW_HEIGHT}px !important;
-            /*display: flex; /* Use flexbox for vertical alignment */
-           /*justify-content: center; /*Center horizontally*/
-            /*align-items: center; /* Center text vertically */ */
-             text-align:center;
+            text-align:center;
         }}
 
         .normal-text {{
@@ -198,20 +189,17 @@ def main():
             text-align: center;
             width: {CENTER_COL_WIDTH}px !important;
             height: {ROW_HEIGHT}px !important; /* Consistent height for text */
-             /*display: flex; /* Use flexbox for vertical alignment */
-            /*justify-content: center; /*Center horizontally*/
-            /*align-items: center; /* Center text vertically */ */
         }}
          /* Fix button display*/
-         [data-testid="stHorizontalBlock"] > div:nth-child(1) {
+         [data-testid="stHorizontalBlock"] > div:nth-child(1) {{
             width: {BUTTON_WIDTH}px;
-        }
+        }}
 
-        [data-testid="stHorizontalBlock"] > div:nth-child(3) {
+        [data-testid="stHorizontalBlock"] > div:nth-child(3) {{
             width: {BUTTON_WIDTH}px;
-        }
+        }}
 
-        [data-testid="stHorizontalBlock"] > div:nth-child(2) {
+        [data-testid="stHorizontalBlock"] > div:nth-child(2) {{
             width: {CENTER_COL_WIDTH}px;
         }}
         </style>
@@ -219,68 +207,68 @@ def main():
 
     # --- NAVIGATION ---
     with st.container():
-        st.markdown(f"""<div class='container'>
-            <div class='nav-container'>
-             <div class='streamlit-button'>
-            <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">◀️ Prev</button>
-             </div>
-             <div class='normal-text'>
-                  <p>Image {st.session_state.current_image_index + 1}/{total_imgs}</p>
-                 </div>
-              <div class='streamlit-button'>
-            <button onclick="Streamlit.setComponentValue(false)" type="button" kind="primary" data-testid="stButton" class="css-qbe2hs edgjbgn5">Next ▶️</button>
-                  </div>
-             </div>""")
+        col_prev, col_center, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])
+        
+        with col_prev:
+            if st.button("◀️ Prev", key="prev_image"):
+                st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
+        
+        with col_center:
+            st.markdown(f"<p class='normal-text'>Image {st.session_state.current_image_index + 1}/{total_imgs}</p>", unsafe_allow_html=True)
+        
+        with col_next:
+            if st.button("Next ▶️", key="next_image"):
+                st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
 
-        # --- LOAD IMAGE & ANNOTATIONS ---
-        idx = st.session_state.current_image_index
-        entry = dataset[idx]
+    # --- LOAD IMAGE & ANNOTATIONS ---
+    idx = st.session_state.current_image_index
+    entry = dataset[idx]
 
-        original_image = load_image(entry)
+    original_image = load_image(entry)
 
-        if original_image is None:
-            st.error(f"Failed to load image: {entry['image_path']}")
-            return  # Skip to the next image
+    if original_image is None:
+        st.error(f"Failed to load image: {entry['image_path']}")
+        return  # Skip to the next image
 
-        annotations = load_annotation(entry, num_classes=NUM_CLASSES)
+    annotations = load_annotation(entry, num_classes=NUM_CLASSES)
 
-        # --- ANNOTATION INDEX RESET ---
-        if st.session_state.last_image_index != idx:
-            st.session_state.current_annotation_idx = 0
-            st.session_state.last_image_index = idx
+    # --- ANNOTATION INDEX RESET ---
+    if st.session_state.last_image_index != idx:
+        st.session_state.current_annotation_idx = 0
+        st.session_state.last_image_index = idx
 
-        if not annotations:
-            st.warning("No annotations for this image.")
-            # Display the full image even without annotations
-            st.image(original_image, caption="Original Image", use_container_width=True)
-            return
+    if not annotations:
+        st.warning("No annotations for this image.")
+        # Display the full image even without annotations
+        st.image(original_image, caption="Original Image", use_container_width=True)
+        return
 
-        max_ann_idx = len(annotations) - 1
+    max_ann_idx = len(annotations) - 1
 
-        # Initialize class_name to a default value
-        class_name = "No Annotations"
-        ann_idx = 0
-        # --- ANNOTATION NAVIGATION ---
-        with st.container(): #ADD THE CONTAINER HERE
-            col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])
-            if annotations:
-                ann_idx = st.session_state.current_annotation_idx
-                annotation = annotations[ann_idx]
-                class_id = annotation[0]  # Get the class ID
-                class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
+    # Initialize class_name to a default value
+    class_name = "No Annotations"
+    ann_idx = 0
+    # --- ANNOTATION NAVIGATION ---
+    with st.container():  # ADD THE CONTAINER HERE
+        col_prev, col_class, col_next = st.columns([BUTTON_WIDTH, CENTER_COL_WIDTH, BUTTON_WIDTH])
+        if annotations:
+            ann_idx = st.session_state.current_annotation_idx
+            annotation = annotations[ann_idx]
+            class_id = annotation[0]  # Get the class ID
+            class_name = CLASS_NAMES[class_id]  # Look up the class name - use direct indexing
 
-            with col_prev:
-                if st.button("◀️ Prev", key="prev_annotation"):
-                    st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
-            with col_class:
-                st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True)  # Use paragraph tag with normal-text class
-            with col_next:
-                if st.button("Next ▶️", key="next_annotation"):
-                    if annotations:
-                        if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1:  # Last annotation and not last image
-                            st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
-                        else:
-                            st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
+        with col_prev:
+            if st.button("◀️ Prev", key="prev_annotation"):
+                st.session_state.current_annotation_idx = max(0, st.session_state.current_annotation_idx - 1)
+        with col_class:
+            st.markdown(f"<p class='normal-text'>{class_name}</p>", unsafe_allow_html=True)  # Use paragraph tag with normal-text class
+        with col_next:
+            if st.button("Next ▶️", key="next_annotation"):
+                if annotations:
+                    if ann_idx == max_ann_idx and st.session_state.current_image_index < total_imgs - 1:  # Last annotation and not last image
+                        st.session_state.current_image_index = min(total_imgs - 1, st.session_state.current_image_index + 1)
+                    else:
+                        st.session_state.current_annotation_idx = min(max_ann_idx, st.session_state.current_annotation_idx + 1)
 
     # --- DISPLAY ANNOTATION CROP ---
     display_img = get_annotation_crop(original_image, annotation)
