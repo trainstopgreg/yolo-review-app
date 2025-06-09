@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['ball_yellow', 'player', 'referee']
+
+roboflow:
+  workspace: polygontesting
+  project: s01-wdy-claremontvseastperth-r8-2025
+  version: 6
+  license: Private
+  url: https://app.roboflow.com/polygontesting/s01-wdy-claremontvseastperth-r8-2025/6
