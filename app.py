@@ -14,7 +14,7 @@ TOTAL_WIDTH = BUTTON_WIDTH * 2 + CENTER_COL_WIDTH  # total width of section.
 
 # Use environment variables for directory paths, with defaults
 IMAGES_DIR = os.environ.get("IMAGES_DIR", os.path.join("dataset", "train", "images"))
-LABELS_DIR = os.environ.get("LABELS_DIR", os.path.join("dataset", "train", "labels")
+LABELS_DIR = os.environ.get("LABELS_DIR", os.path.join("dataset", "train", "labels"))
 DATA_YAML_PATH = os.path.join("dataset", "data.yaml")  # Path to your data.yaml file
 
 # Load class names and number of classes from data.yaml
